@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AForge.Video.FFMPEG;
@@ -35,17 +31,16 @@ namespace TimeLapser {
             var outdir = txtPath.Text;
             var format = (VideoCodec) cmbFormat.SelectedItem;
             var delay = (int) nudFreq.Value;
-            var screenId = ( (ScreenInfo) cmbScreen.SelectedItem ).Id - 1;
+            var screenId = ( (ScreenInfo) cmbScreen.SelectedItem ).Rect;
             var outfile = Path.Combine( outdir, DateTime.Now.ToFileTime() + ".avi" );
             var bitrate = (int)budBitrate.Value * 1024;
             var framerate = (int)nudFramerate.Value;
             await this.Record(outfile, screenId, delay, framerate, format, bitrate);
         }
 
-        private async Task Record(string outfile, int screenId=0, int delay=500, int framerate = 30, VideoCodec format=VideoCodec.Default, int bitrate=24000)
+        private async Task Record(string outfile, Rectangle rectangle = default( Rectangle ), int delay=500, int framerate = 30, VideoCodec format=VideoCodec.Default, int bitrate=24000)
         {
-            var screen = Screen.AllScreens.OrderBy(a=>a.Bounds.X).ToArray()[ screenId ];
-            var b = screen.Bounds;
+            var b = rectangle!=default(Rectangle)?rectangle: Screen.AllScreens.OrderBy(a=>a.Bounds.X).First().Bounds;
             int w = b.Width, h = b.Height, x = b.X, y = b.Y;
             var sz = new Size( w, h );
             using ( var outstream = new VideoFileWriter() ) {
@@ -67,12 +62,26 @@ namespace TimeLapser {
             cmbFormat.DataSource = (VideoCodec[]) Enum.GetValues( typeof( VideoCodec ) );
             var scr = Screen.AllScreens.OrderBy( a=>a.Bounds.X ).ToArray();
             
-            cmbScreen.DataSource = Enumerable.Range(1, scr.Length).Select(a => new ScreenInfo { Id = a, Name = scr[a - 1].DeviceName }).ToArray();
+            var screens = Enumerable
+                .Range(1, scr.Length)
+                .Select(a => new ScreenInfo { Id = a, Name = scr[a - 1].DeviceName, Rect = scr[a-1].Bounds})
+                .ToList();
+            var mx = scr.Min( a => a.Bounds.X );
+            var my = scr.Min( a => a.Bounds.Y );
+            var w = scr.Max( a => a.Bounds.Width + a.Bounds.X ) - mx;
+            var h = scr.Max(a => a.Bounds.Height + a.Bounds.Y) - my;
+            screens.Add( new ScreenInfo {
+                Id=screens.Count+1,
+                Name = "All screens",
+                Rect = new Rectangle( mx, my, w, h )
+            } );
+            cmbScreen.DataSource = screens;
             cmbScreen.SelectedIndex = cmbFormat.SelectedIndex = 0;
         }
     }
 
     class ScreenInfo {
+        public Rectangle Rect;
         public int Id;
         public string Name;
         public override string ToString() {
