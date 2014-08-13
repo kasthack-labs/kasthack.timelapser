@@ -170,7 +170,7 @@
             this.budBitrate.Size = new System.Drawing.Size(136, 20);
             this.budBitrate.TabIndex = 2;
             this.budBitrate.Value = new decimal(new int[] {
-            20000,
+            30000,
             0,
             0,
             0});
@@ -196,12 +196,12 @@
             this.nudFramerate.Size = new System.Drawing.Size(136, 20);
             this.nudFramerate.TabIndex = 4;
             this.nudFramerate.Value = new decimal(new int[] {
-            24,
+            30,
             0,
             0,
             0});
             // 
-            // Form1
+            // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -222,7 +222,7 @@
             this.Controls.Add(this.txtPath);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             this.MaximizeBox = false;
-            this.Name = "Form1";
+            this.Name = "frmMain";
             this.Text = "Timelapser by kasthack";
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.nudFreq)).EndInit();

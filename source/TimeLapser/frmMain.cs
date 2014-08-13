@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AForge.Video.FFMPEG;
-
 namespace TimeLapser {
     public partial class frmMain : Form {
         private bool recording = false;
@@ -16,9 +16,13 @@ namespace TimeLapser {
 
         private async void btnGo_Click( object sender, EventArgs e ) {
             recording ^= true;
-            btnGo.Text = recording ? "Stop" : "Go";
             if ( recording ) await Start();
             else await Stop();
+        }
+
+        private void SetR( bool b ) {
+            btnGo.Text = b ? "Stop" : "Go";
+            lblTime.Text = !b ? "Pending" : "";
         }
 
         private async Task Stop() {
@@ -28,6 +32,7 @@ namespace TimeLapser {
         }
 
         private async Task Start() {
+            SetR(true);
             var outdir = txtPath.Text;
             var format = (VideoCodec) cmbFormat.SelectedItem;
             var delay = (int) nudFreq.Value;
@@ -36,26 +41,41 @@ namespace TimeLapser {
             var bitrate = (int)budBitrate.Value * 1024;
             var framerate = (int)nudFramerate.Value;
             await this.Record(outfile, screenId, delay, framerate, format, bitrate);
+            SetR( false );
         }
 
-        private async Task Record(string outfile, Rectangle rectangle = default( Rectangle ), int delay=500, int framerate = 30, VideoCodec format=VideoCodec.Default, int bitrate=24000)
-        {
+        private async Task Record(string outfile, Rectangle rectangle = default( Rectangle ), int delay=500, int framerate = 30, VideoCodec format=VideoCodec.Default, int bitrate=24000) {
+            var sw = new Stopwatch();
+            sw.Start();
             var b = rectangle!=default(Rectangle)?rectangle: Screen.AllScreens.OrderBy(a=>a.Bounds.X).First().Bounds;
             int w = b.Width, h = b.Height, x = b.X, y = b.Y;
             var sz = new Size( w, h );
             using ( var outstream = new VideoFileWriter() ) {
+                var pd = Path.GetDirectoryName( outfile );
+                if ( !Directory.Exists( pd ) ) Directory.CreateDirectory( pd );
                 outstream.Open(outfile, w, h, framerate, format, bitrate);
                 using ( var bmp = new Bitmap( w, h ) ) {
                     using ( var gr = Graphics.FromImage( bmp ) ) {
-                        while ( this.recording ) {
-                            gr.CopyFromScreen( x, y, 0, 0, sz );
-                            gr.Flush();
-                            outstream.WriteVideoFrame( bmp );
+                        while (recording)
+                        {
+                            lblTime.Text = sw.Elapsed.ToString("g");
+                            try {
+                                gr.CopyFromScreen( x, y, 0, 0, sz );
+                                preprocessFrame( gr );
+                                gr.Flush();
+                                outstream.WriteVideoFrame( bmp );
+                            }
+                            catch {}
                             await Task.Delay( delay );
                         }
                     }
                 }
             }
+            sw.Stop();
+        }
+
+        private void preprocessFrame( Graphics gr ) {
+            return;
         }
 
         private void Form1_Load( object sender, EventArgs e ) {
@@ -76,7 +96,9 @@ namespace TimeLapser {
                 Rect = new Rectangle( mx, my, w, h )
             } );
             cmbScreen.DataSource = screens;
-            cmbScreen.SelectedIndex = cmbFormat.SelectedIndex = 0;
+            cmbFormat.SelectedIndex = 0;
+            cmbScreen.SelectedIndex = cmbScreen.Items.Count - 1;
+            txtPath.Text = Environment.GetFolderPath( Environment.SpecialFolder.MyVideos );
         }
     }
 
