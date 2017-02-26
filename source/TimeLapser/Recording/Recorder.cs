@@ -31,7 +31,8 @@ namespace TimeLapser {
             try {
                 try {
                     Thread.CurrentThread.Priority = ThreadPriority.Highest;
-                } catch (Exception ex) { }
+                }
+                catch (Exception ex) { }
                 _stopwatch = _stopwatch ?? new Stopwatch();
                 _stopwatch.Reset();
                 _stopwatch.Start();
@@ -43,21 +44,20 @@ namespace TimeLapser {
                 const double second = 1000;
                 const double minute = second * 60;
                 const int quant = 10;//timeouts don't include process switching
-                var inputSnapInterval = (int)Math.Max(( settings.Realtime ? second / settings.Fps : settings.Interval ),0);//snap every N ms
+                var inputSnapInterval = (int)Math.Max(( settings.Realtime ? second / settings.Fps : settings.Interval ), 0);//snap every N ms
                 var splitInterval = settings.SplitInterval * minute / inputSnapInterval;//split every N frames
                 var inputExpectedFps = inputSnapInterval > 0 ? second / inputSnapInterval : 0;
                 var sourceRect = settings.CaptureRectangle;
 
-                            var framesWritten = 0L;
+                var framesWritten = 0L;
                 while (Recording) {
                     var outfile = Path.Combine(settings.OutputPath, DateTime.Now.ToFileTime().ToString() + ".avi");
                     using (var outstream = new VideoFileWriter()) {
-                        outstream.Open( outfile, sourceRect.Width, sourceRect.Height, settings.Fps, settings.Codec, settings.Bitrate);
+                        outstream.Open(outfile, sourceRect.Width, sourceRect.Height, settings.Fps, settings.Codec, settings.Bitrate);
                         using (ISnapper snapper = new DXSnapper()) {
+                        using (var processingSemaphore = new SemaphoreSlim(snapper.MaxProcessingThreads)) {
+                        using (var writeSemaphore = new SemaphoreSlim(1)) {
                             snapper.SetSource(sourceRect);
-
-                            Bitmap currentFrame = null;
-
                             var dropNextNFrames = 0;
                             var lastSyncFrames = framesWritten;
                             double lastSyncTime = _stopwatch.ElapsedMilliseconds;
@@ -67,6 +67,7 @@ namespace TimeLapser {
 
                             for (var i = 0L; ( splitInterval == null || i < splitInterval ) && Recording; i++) {
                                 Task tsk = null;
+                                Bitmap currentFrame = null;
                                 try {
                                     framesWritten++;
 
@@ -78,11 +79,12 @@ namespace TimeLapser {
                                         outstream.WriteVideoFrame(currentFrame);
                                         continue;
                                     }
-                                    tsk = Task.Delay(inputSnapInterval-quant);
+                                    tsk = Task.Delay(inputSnapInterval - quant);
                                     /*
-                                     * these bitmaps are actually the same object or null -> we only have to dispose it once
-                                     */
+                                        * these bitmaps are actually the same object or null -> we only have to dispose it once
+                                        */
                                     var elapsedBeforeCurrentSnap = _stopwatch.Elapsed.TotalMilliseconds;
+                                    processingSemaphore.Wait();
                                     var tmp = snapper.Snap(inputSnapInterval);
                                     var elapsedAfterCurrentSnap = _stopwatch.Elapsed.TotalMilliseconds;
                                     if (elapsedAfterCurrentSnap - elapsedBeforeCurrentSnap > inputSnapInterval) {
@@ -95,24 +97,45 @@ namespace TimeLapser {
                                     }
                                     currentFrame = tmp ?? currentFrame;
                                     //Debug.WriteLine($"[SNAP] {_stopwatch.ElapsedMilliseconds} ms");
-                                    PreprocessFrame(currentFrame, settings);
-                                    outstream.WriteVideoFrame(currentFrame);
                                     //settings.OnFrameWritten?.Invoke(_stopwatch.Elapsed);
-                                } catch (Exception ex) {
+                                }
+                                catch (Exception ex) {
                                     //Debug.WriteLine($"[FUCK] crashed on snap: {ex.Message}");
                                     crashedFramesSinceLastSync++;
+                                }
+                                try {
+                                    Task.Run(async () => {
+                                        try {
+                                            if (currentFrame != null) {//offload to separate thread
+
+                                                PreprocessFrame(currentFrame, settings);
+                                                await writeSemaphore.WaitAsync().ConfigureAwait(false);
+                                                try {
+                                                    outstream.WriteVideoFrame(currentFrame);
+                                                }
+                                                finally {
+                                                    writeSemaphore.Release();
+                                                }
+
+                                            }
+                                        }
+                                        finally {
+                                            processingSemaphore.Release();
+                                        }
+                                    });
+                                }
+                                catch (Exception ex) {
+                                    //todo: crashed frame logging
                                 }
 
                                 double elapsedNow = _stopwatch.ElapsedMilliseconds;
                                 var elapsedSinceLastSync = elapsedNow - lastSyncTime;
                                 if (elapsedSinceLastSync >= second) {
                                     var framesSinceLastSync = framesWritten - lastSyncFrames;
-                                    //if (framesSinceLastSync>100)
-                                    //    Debugger.Break();
                                     //only relevant for realtime+ recordings
                                     var recentFps = framesSinceLastSync * second / elapsedSinceLastSync;
                                     var recentFpsDelta = recentFps - inputExpectedFps;
-                                    Console.WriteLine($"{framesSinceLastSync} frames({emptyFramesSinceLastSync} empty, {crashedFramesSinceLastSync} crashed, {slowFramewsSinceLastSync} slow) in last {elapsedSinceLastSync.ToString("F")} ms ({recentFps.ToString("F")} fps). Total FPS: {(framesWritten * second / elapsedNow).ToString("F")}. Expected: {inputExpectedFps.ToString("F")}");
+                                    Console.WriteLine($"{framesSinceLastSync} frames({emptyFramesSinceLastSync} empty, {crashedFramesSinceLastSync} crashed, {slowFramewsSinceLastSync} slow) in last {elapsedSinceLastSync.ToString("F")} ms ({recentFps.ToString("F")} fps). Total FPS: {( framesWritten * second / elapsedNow ).ToString("F")}. Expected: {inputExpectedFps.ToString("F")}");
 #if !PERF
                                     if (recentFpsDelta > 1) //faster than expected && at least one actual frame
                                     {
@@ -135,14 +158,18 @@ namespace TimeLapser {
                                 tsk?.Wait();
 #endif
                             }
-                            currentFrame?.Dispose();
+                            writeSemaphore.Wait();
+                        }
+                        }
                         }
                     }
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 //Debug.WriteLine(ex.Message);
                 //global
-            } finally {
+            }
+            finally {
                 _stopwatch?.Stop();
                 _stopWaiter.Set();
             }

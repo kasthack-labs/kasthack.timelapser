@@ -74,7 +74,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Recording\DisposableBase.cs" />
-    <Compile Include="Recording\DXSnapper.cs" />
+    <Compile Include="Recording\DX\DXExtensions.cs" />
+    <Compile Include="Recording\DX\DXRenderData.cs" />
+    <Compile Include="Recording\DX\DXSnapper.cs" />
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
