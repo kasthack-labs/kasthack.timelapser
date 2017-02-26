@@ -67,7 +67,8 @@ namespace TimeLapser {
                 var acquiredFrame = false;
                 try {
                     try {
-                        _duplicatedOutput.AcquireNextFrame(timeout, out var dfi, out screenResource);
+                        OutputDuplicateFrameInformation dfi;
+                        _duplicatedOutput.AcquireNextFrame(timeout, out dfi, out screenResource);
                         acquiredFrame = true;
                     }
                     catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code) {

@@ -9,7 +9,9 @@ namespace TimeLapser {
         private readonly Recorder _recorder = new Recorder();
         private RecordSettings _settings;
 
-        public frmMain() => InitializeComponent();
+        public frmMain() {
+            InitializeComponent();
+        }
 
         private void btnGo_Click( object sender, EventArgs e ) {
             if ( _recorder.Recording ) {
