@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
 
     public class ScreenInfo {
         public Rectangle Rect;

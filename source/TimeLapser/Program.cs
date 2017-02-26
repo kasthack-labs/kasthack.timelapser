@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace TimeLapser
+namespace kasthack.TimeLapser
 {
     static class Program
     {

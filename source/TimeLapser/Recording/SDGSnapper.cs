@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Drawing;
+using System.Threading.Tasks;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     /*
      * simple snapper, utilizing System.Drawing.Graphics.CopyFromScreen
      */
@@ -20,7 +21,7 @@ namespace TimeLapser {
             _bmp = new Bitmap(sourceRect.Width, sourceRect.Height);
             _gr = Graphics.FromImage(_bmp);
         }
-        public Bitmap Snap(int interval = 0) {
+        public async Task<Bitmap> Snap(int interval = 0) {
             ThrowIfDisposed();
             if (_sourceRectHolder == null)
                 throw new InvalidOperationException("You have to specify source");

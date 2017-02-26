@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Drawing;
+using System.Threading.Tasks;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     interface ISnapper : IDisposable
     {
         void SetSource(Rectangle sourceRect);
@@ -9,7 +10,7 @@ namespace TimeLapser {
          * _reusable_ bitmap
          * implementation must dispose it
          */
-        Bitmap Snap(int timeout = 0);
+        Task<Bitmap> Snap(int timeout = 0);
         int MaxProcessingThreads { get; }
     }
 }

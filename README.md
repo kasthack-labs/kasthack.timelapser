@@ -1,1 +1,7 @@
-![Screenshot](https://pp.vk.me/c617620/v617620040/169aa/yKiVE7b08IA.jpg)
+Timelapser
+
+[![Build status](https://img.shields.io/appveyor/ci/kasthack/timelapser.svg)](https://ci.appveyor.com/project/kasthack/timelapser)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/timelapser)
+[![license](https://img.shields.io/github/license/kasthack/timelapser.svg)](LICENSE)
+
+![Screenshot](img/screenshot.png)

@@ -8,7 +8,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     internal partial class DXSnapper : DisposableBase, ISnapper {
         public const int renderPoolSize = 3;
         private const int destPixelSize = 3;
@@ -43,7 +43,7 @@ namespace TimeLapser {
                                 ret.Add(new Tuple<int,int>(adapterIndex, outputIndex));
             return ret.ToArray();
         }
-        public Bitmap Snap(int timeout = 0) {
+        public async Task<Bitmap> Snap(int timeout = 0) {
             ThrowIfDisposed();
             if (_sourceRect == null)
                 throw new InvalidOperationException("You have to specify source");
@@ -54,7 +54,7 @@ namespace TimeLapser {
                 var boundsRect = new Rectangle(0, 0, renderBitmap.Width, renderBitmap.Height);
                 bitmap = renderBitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, renderBitmap.PixelFormat);
 
-                Task.WaitAll(_inputs.Select(input=>Task.Run(()=>input.Snap(bitmap, timeout))).ToArray());
+                await Task.WhenAll(_inputs.Select(input=>Task.Run(()=>input.Snap(bitmap, timeout)))).ConfigureAwait(false);
             }
             finally {
                 // Release source and dest locks

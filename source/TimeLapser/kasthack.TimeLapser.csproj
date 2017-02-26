@@ -7,8 +7,8 @@
     <ProjectGuid>{2A508A4D-F0AC-484B-8C27-66E14102AA08}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TimeLapser</RootNamespace>
-    <AssemblyName>TimeLapser</AssemblyName>
+    <RootNamespace>kasthack.TimeLapser</RootNamespace>
+    <AssemblyName>kasthack.TimeLapser</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>

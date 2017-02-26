@@ -1,10 +1,12 @@
-﻿#define TESTING
+﻿#if DEBUG
+    #define TESTING
+#endif
 using System;
 using System.IO;
 using System.Windows.Forms;
 using Accord.Video.FFMPEG;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     public partial class frmMain : Form {
         private readonly Recorder _recorder = new Recorder();
         private RecordSettings _settings;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     public abstract class DisposableBase : IDisposable {
         private bool _disposed = false;
         protected bool ThrowIfDisposed() {

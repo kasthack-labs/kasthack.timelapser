@@ -5,7 +5,7 @@ using SharpDX;
 using SharpDX.Direct3D11;
 using System.Drawing.Imaging;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     internal partial class DXSnapper {
         private class DXSnapperInput : DisposableBase, IDisposable {
             private readonly int _destXOffset;

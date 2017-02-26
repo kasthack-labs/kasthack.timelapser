@@ -2,7 +2,7 @@
 using System.Drawing;
 using Accord.Video.FFMPEG;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
 
     public class RecordSettings {
         public RecordSettings(){}

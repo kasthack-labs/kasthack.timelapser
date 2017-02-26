@@ -7,7 +7,7 @@ using SharpDX;
 using SharpDX.Direct3D11;
 using MapFlags = SharpDX.Direct3D11.MapFlags;
 
-namespace TimeLapser {
+namespace kasthack.TimeLapser {
     internal static class DXExtensions {
         public static int Height(this RawRectangle rect) => rect.Bottom - rect.Top;
         public static int Width(this RawRectangle rect) => rect.Right - rect.Left;
