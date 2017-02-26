@@ -6,9 +6,10 @@ namespace TimeLapser {
     {
         void SetSource(Rectangle sourceRect);
         /*
-         * may return reusable objects!
-         * don't rely on it and copy the data
+         * _reusable_ bitmap
+         * implementation must dispose it
          */
         Bitmap Snap(int timeout = 0);
+        int MaxProcessingThreads { get; }
     }
 }

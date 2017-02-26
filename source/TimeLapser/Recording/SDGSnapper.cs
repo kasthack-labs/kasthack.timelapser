@@ -9,6 +9,9 @@ namespace TimeLapser {
         private Bitmap _bmp;
         private Graphics _gr;
         private Rectangle? _sourceRectHolder;
+
+        public int MaxProcessingThreads => 1;
+
         public void SetSource(Rectangle sourceRect) {
             ThrowIfDisposed();
             DisposeNative();
