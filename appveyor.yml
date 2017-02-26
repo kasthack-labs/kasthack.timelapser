@@ -17,3 +17,5 @@ deploy:
   auth_token:
     secure: MfE4qSIr2yoNR8/GUgRVJgaM9jVupDe40JAgb5P/Es/bD6DGzuqkTrHnzpsIFTPH
   artifact: GH
+  on:
+    branch: master
