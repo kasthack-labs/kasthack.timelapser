@@ -5,9 +5,12 @@ using SharpDX;
 using SharpDX.Direct3D11;
 using System.Drawing.Imaging;
 
-namespace kasthack.TimeLapser {
-    internal partial class DXSnapper {
-        private class DXSnapperInput : DisposableBase, IDisposable {
+namespace kasthack.TimeLapser
+{
+    internal partial class DXSnapper
+    {
+        private class DXSnapperInput : DisposableBase, IDisposable
+        {
             private readonly int _destXOffset;
             private readonly int _destYOffset;
             private readonly int _sourceXOffset;
@@ -23,19 +26,22 @@ namespace kasthack.TimeLapser {
             private readonly SharpDX.Direct3D11.Device _device;
             private readonly OutputDuplication _duplicatedOutput;
 
-            public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle) {
+            public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle)
+            {
                 _adapter = factory.GetAdapter1(adapterIndex);
                 _device = new SharpDX.Direct3D11.Device(_adapter);
                 _output = _adapter.GetOutput(outputIndex);
                 var outputBounds = _output.Description.DesktopBounds.ToGDIRect();
 
                 var intersection = Rectangle.Intersect(outputBounds, captureRectangle);
-                if (intersection.IsEmpty) {
+                if (intersection.IsEmpty)
+                {
                     Dispose();
                     throw new ArgumentOutOfRangeException(nameof(captureRectangle), $"Output {outputIndex} for adapter {adapterIndex} {FormatRectangle(outputBounds)} doesn't intersect with capture rectangle {FormatRectangle(captureRectangle)}");
                 }
 
-                _textureDescription = new Texture2DDescription {
+                _textureDescription = new Texture2DDescription
+                {
                     CpuAccessFlags = CpuAccessFlags.Read,
                     BindFlags = BindFlags.None,
                     Format = sourcePixelFormat,
@@ -55,44 +61,57 @@ namespace kasthack.TimeLapser {
                 _duplicatedOutput = _output1.DuplicateOutput(_device);
 
                 _destXOffset = intersection.Left - captureRectangle.Left;
-                _destYOffset= intersection.Top - captureRectangle.Top;
+                _destYOffset = intersection.Top - captureRectangle.Top;
                 _sourceXOffset = intersection.Left - outputBounds.Left;
                 _sourceYOffset = intersection.Top - outputBounds.Top;
                 _width = intersection.Width;
                 _height = intersection.Height;
             }
-            internal bool Snap(BitmapData bitmap, int timeout) {
+            internal bool Snap(BitmapData bitmap, int timeout)
+            {
                 ThrowIfDisposed();
                 SharpDX.DXGI.Resource screenResource = null;
                 var acquiredFrame = false;
-                try {
-                    try {
+                try
+                {
+                    try
+                    {
                         OutputDuplicateFrameInformation dfi;
                         _duplicatedOutput.AcquireNextFrame(timeout, out dfi, out screenResource);
                         acquiredFrame = true;
                     }
-                    catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code) {
+                    catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
+                    {
                         return false;
                     }
                     using (var queryInterface = screenResource.QueryInterface<SharpDX.Direct3D11.Resource>())
+                    {
                         _device.ImmediateContext.CopyResource(queryInterface, _screenTexture);
+                    }
+
                     var databox = _device.ImmediateContext.MapSubresource(_screenTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
                     Render(databox, bitmap);
                     return true;
                 }
-                finally {
+                finally
+                {
                     _device.ImmediateContext.UnmapSubresource(_screenTexture, 0);
                     screenResource?.Dispose();
                     if (acquiredFrame)
+                    {
                         _duplicatedOutput?.ReleaseFrame();
+                    }
                 }
             }
-            private unsafe void Render(DataBox databox, BitmapData bitmap) {
+            private unsafe void Render(DataBox databox, BitmapData bitmap)
+            {
                 var sourcePtr = IntPtr.Add(databox.DataPointer, _sourceXOffset * sourcePixelSize + _sourceYOffset * databox.RowPitch);
                 var destPtr = IntPtr.Add(bitmap.Scan0, _destXOffset * destPixelSize + _destYOffset * bitmap.Stride);
-                for (var y = 0; y < _height; y++) {
+                for (var y = 0; y < _height; y++)
+                {
                     /*
-                    * Accord.Video.FFMPEG.VideoFileWriter.WriteVideoFrame internally uses bimtaps/Format24bppRgb and converts other formats => it's faster to do this while copying the data
+                    * Accord.Video.FFMPEG.VideoFileWriter.WriteVideoFrame internally uses bimtaps/Format24bppRgb and converts other formats
+                    *   => it's faster to do this while copying the data
                     * https://github.com/accord-net/framework/blob/development/Sources/Extras/Accord.Video.FFMPEG.GPL/VideoFileWriter.cpp#L600-L621
                     *
                     * 
@@ -109,24 +128,28 @@ namespace kasthack.TimeLapser {
                     *
                     *             |B|G|R|         last pixel in a row / if (width > 0)
                     */
-                    var bptr = (byte*)destPtr.ToPointer();
-                    var sptr = (int*)sourcePtr.ToPointer();
-                    var sw = sptr + _width - 1;
-                    while(sptr < sw) {
-                        *(int*)bptr = *sptr++;
-                        bptr += destPixelSize;
+                    var destinationBytePointer = (byte*)destPtr.ToPointer();
+                    var sourceInt32Pointer = (int*)sourcePtr.ToPointer();
+                    var sourceWideEndPointer = sourceInt32Pointer + _width - 1;
+                    while (sourceInt32Pointer < sourceWideEndPointer)
+                    {
+                        *(int*)destinationBytePointer = *sourceInt32Pointer++;
+                        destinationBytePointer += destPixelSize;
                     }
-                    if (_width > 0) {
-                        var sbptr = (byte*)sptr;
-                        *bptr++ = *sbptr++;
-                        *bptr++ = *sbptr++;
-                        *bptr++ = *sbptr++;
+                    if (_width > 0)
+                    {
+                        var sourceBytePointer = (byte*)sourceInt32Pointer;
+                        for (var i = 0; i < destPixelSize; i++)
+                        {
+                            *destinationBytePointer++ = *sourceBytePointer++;
+                        }
                     }
                     sourcePtr = IntPtr.Add(sourcePtr, databox.RowPitch);
                     destPtr = IntPtr.Add(destPtr, bitmap.Stride);
                 }
             }
-            public override void Dispose() {
+            public override void Dispose()
+            {
                 _adapter?.Dispose();
                 _device?.Dispose();
                 _output?.Dispose();

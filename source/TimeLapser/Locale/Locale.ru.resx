@@ -117,10 +117,46 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <metadata name="fbdSave.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
-  <metadata name="nicon.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>144, 17</value>
-  </metadata>
+  <data name="Bitrate" xml:space="preserve">
+    <value>Битрейт(MBps)</value>
+  </data>
+  <data name="ElapsedFormatStirng" xml:space="preserve">
+    <value>Elapsed :{0:g}</value>
+  </data>
+  <data name="Format" xml:space="preserve">
+    <value>Формат</value>
+  </data>
+  <data name="Framerate" xml:space="preserve">
+    <value>Фреймрейт</value>
+  </data>
+  <data name="IntervalMs" xml:space="preserve">
+    <value>Interval(ms)</value>
+  </data>
+  <data name="OutputPath" xml:space="preserve">
+    <value>Папка для сохранения</value>
+  </data>
+  <data name="Pending" xml:space="preserve">
+    <value>Ожидание</value>
+  </data>
+  <data name="ProgramName" xml:space="preserve">
+    <value>Timelapser by kasthack</value>
+  </data>
+  <data name="Realtime" xml:space="preserve">
+    <value>В реальном времени</value>
+  </data>
+  <data name="Recorder" xml:space="preserve">
+    <value>Метод записи</value>
+  </data>
+  <data name="Screen" xml:space="preserve">
+    <value>Экран</value>
+  </data>
+  <data name="SplitEveryNMinutes" xml:space="preserve">
+    <value>Split every N minutes</value>
+  </data>
+  <data name="StartRecording" xml:space="preserve">
+    <value>Запуск</value>
+  </data>
+  <data name="StopRecording" xml:space="preserve">
+    <value>Стоп</value>
+  </data>
 </root>

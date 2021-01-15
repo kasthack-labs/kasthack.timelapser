@@ -1,12 +1,26 @@
 ﻿using System;
 using System.Drawing;
+
 using Accord.Video.FFMPEG;
 
-namespace kasthack.TimeLapser {
+namespace kasthack.TimeLapser
+{
 
-    public class RecordSettings {
-        public RecordSettings(){}
-        public RecordSettings( string outputPath, Rectangle captureRectangle, int fps = 30, int interval = 500, VideoCodec codec = VideoCodec.MPEG4, int bitrate = 20, double? splitInterval = null, Action<TimeSpan> onFrameWritten = null, bool realtime=false ) {
+    public class RecordSettings
+    {
+        public RecordSettings() { }
+        public RecordSettings(
+            string outputPath,
+            Rectangle captureRectangle,
+            int fps = 30,
+            int interval = 500,
+            VideoCodec codec = VideoCodec.MPEG4,
+            int bitrate = 20,
+            double? splitInterval = null,
+            Action<TimeSpan> onFrameWritten = null,
+            bool realtime = false,
+            SnapperType snapperType = SnapperType.DirectX)
+        {
             OutputPath = outputPath;
             CaptureRectangle = captureRectangle;
             OnFrameWritten = onFrameWritten;
@@ -17,6 +31,7 @@ namespace kasthack.TimeLapser {
             SplitInterval = splitInterval;
             Private = false;
             Realtime = realtime;
+            SnapperType = snapperType;
         }
         /// <summary>
         /// Split every N input seconds
@@ -50,10 +65,18 @@ namespace kasthack.TimeLapser {
         /// I dunno
         /// </summary>
         public bool Private { get; set; }
+
         public Action<TimeSpan> OnFrameWritten { get; }
         /// <summary>
         /// Ignore interval and snap in realtime
         /// </summary>
         public bool Realtime { get; }
+
+        public SnapperType SnapperType { get; }
+    }
+    public enum SnapperType
+    {
+        DirectX,
+        Legacy
     }
 }

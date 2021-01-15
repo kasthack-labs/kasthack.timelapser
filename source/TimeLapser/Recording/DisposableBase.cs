@@ -5,7 +5,10 @@ namespace kasthack.TimeLapser {
         private bool _disposed = false;
         protected bool ThrowIfDisposed() {
             if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
+            }
+
             return true;
         }
 
