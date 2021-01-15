@@ -110,7 +110,8 @@ namespace kasthack.TimeLapser
                 for (var y = 0; y < _height; y++)
                 {
                     /*
-                    * Accord.Video.FFMPEG.VideoFileWriter.WriteVideoFrame internally uses bimtaps/Format24bppRgb and converts other formats => it's faster to do this while copying the data
+                    * Accord.Video.FFMPEG.VideoFileWriter.WriteVideoFrame internally uses bimtaps/Format24bppRgb and converts other formats
+                    *   => it's faster to do this while copying the data
                     * https://github.com/accord-net/framework/blob/development/Sources/Extras/Accord.Video.FFMPEG.GPL/VideoFileWriter.cpp#L600-L621
                     *
                     * 
@@ -127,20 +128,21 @@ namespace kasthack.TimeLapser
                     *
                     *             |B|G|R|         last pixel in a row / if (width > 0)
                     */
-                    var bptr = (byte*)destPtr.ToPointer();
-                    var sptr = (int*)sourcePtr.ToPointer();
-                    var sw = sptr + _width - 1;
-                    while (sptr < sw)
+                    var destinationBytePointer = (byte*)destPtr.ToPointer();
+                    var sourceInt32Pointer = (int*)sourcePtr.ToPointer();
+                    var sourceWideEndPointer = sourceInt32Pointer + _width - 1;
+                    while (sourceInt32Pointer < sourceWideEndPointer)
                     {
-                        *(int*)bptr = *sptr++;
-                        bptr += destPixelSize;
+                        *(int*)destinationBytePointer = *sourceInt32Pointer++;
+                        destinationBytePointer += destPixelSize;
                     }
                     if (_width > 0)
                     {
-                        var sbptr = (byte*)sptr;
-                        *bptr++ = *sbptr++;
-                        *bptr++ = *sbptr++;
-                        *bptr++ = *sbptr++;
+                        var sourceBytePointer = (byte*)sourceInt32Pointer;
+                        for (var i = 0; i < destPixelSize; i++)
+                        {
+                            *destinationBytePointer++ = *sourceBytePointer++;
+                        }
                     }
                     sourcePtr = IntPtr.Add(sourcePtr, databox.RowPitch);
                     destPtr = IntPtr.Add(destPtr, bitmap.Stride);

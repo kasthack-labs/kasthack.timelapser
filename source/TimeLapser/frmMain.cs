@@ -17,19 +17,36 @@ namespace kasthack.TimeLapser
         public frmMain()
         {
             InitializeComponent();
+            this.ApplyLocale();
         }
 
-        private void btnGo_Click(object sender, EventArgs e)
+        private void ApplyLocale()
+        {
+            this.Text = Locale.Locale.ProgramName;
+            this.lblFreq.Text = Locale.Locale.IntervalMs;
+            this.lblPath.Text = Locale.Locale.OutputPath;
+            this.chkRealtime.Text = Locale.Locale.Realtime;
+            this.lblFramerate.Text = Locale.Locale.Framerate;
+            this.lblSnapper.Text = Locale.Locale.Recorder;
+            this.lblFormat.Text = Locale.Locale.Format;
+            this.lblBitrate.Text = Locale.Locale.Bitrate;
+            this.lblScreen.Text = Locale.Locale.Screen;
+            this.chkSplit.Text = Locale.Locale.SplitEveryNMinutes;
+            this.lblTime.Text = Locale.Locale.Pending;
+            this.btnGo.Text = Locale.Locale.StartRecording;
+        }
+
+        private void StartRecordingClicked(object sender, EventArgs e)
         {
             if (_recorder.Recording)
             {
                 _recorder.Stop();
-                SetR(false);
+                SetRecordingState(false);
             }
             else
             {
-                SetR(true);
-                _settings = new RecordSettings(
+                SetRecordingState(true);
+                this._settings = new RecordSettings(
                     outputPath: txtPath.Text,
                     captureRectangle: ((ScreenInfo)cmbScreen.SelectedItem).Rect,
                     fps: (int)nudFramerate.Value,
@@ -37,8 +54,9 @@ namespace kasthack.TimeLapser
                     codec: (VideoCodec)cmbFormat.SelectedItem,
                     bitrate: (int)budBitrate.Value << 20,
                     splitInterval: chkSplit.Checked ? (double?)nudSplitInterval.Value : null,
-                    onFrameWritten: (a) => BeginInvoke((Action)(() => lblTime.Text = string.Format("Elapsed :{0:g}", a))),
-                    realtime: chkRealtime.Checked
+                    onFrameWritten: (a) => BeginInvoke((Action)(() => lblTime.Text = string.Format(Locale.Locale.ElapsedFormatStirng, a))),
+                    realtime: chkRealtime.Checked,
+                    snapperType: (SnapperType)cmbSnapper.SelectedItem
                 );
                 _recorder.Start(
                     _settings
@@ -46,10 +64,10 @@ namespace kasthack.TimeLapser
             }
         }
 
-        private void SetR(bool recordRunning)
+        private void SetRecordingState(bool recordRunning)
         {
-            btnGo.Text = recordRunning ? "Stop" : "Go";
-            lblTime.Text = !recordRunning ? "Pending" : "";
+            btnGo.Text = recordRunning ? Locale.Locale.StopRecording : Locale.Locale.StartRecording;
+            lblTime.Text = !recordRunning ? Locale.Locale.Pending : string.Empty;
             txtPath.Enabled
                 = btnbrs.Enabled
                 = nudFreq.Enabled
@@ -63,8 +81,9 @@ namespace kasthack.TimeLapser
                 = !recordRunning;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void FormLoad(object sender, EventArgs e)
         {
+            cmbSnapper.DataSource = Enum.GetValues(typeof(SnapperType)) as SnapperType[];
             cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
             cmbScreen.DataSource = Recorder.GetScreenInfos();
             cmbFormat.SelectedIndex = 0;
@@ -78,31 +97,18 @@ namespace kasthack.TimeLapser
             cmbScreen.SelectedIndex = 1;
 #endif
         }
-        private void btnbrs_Click(object sender, EventArgs e)
-        {
-            if (fbdSave.ShowDialog() == DialogResult.OK)
-            {
-                txtPath.Text = fbdSave.SelectedPath;
-            }
-        }
-        private void checkBox1_CheckedChanged(object sender, EventArgs e) => nudSplitInterval.Enabled = chkSplit.Checked;
+        private void BrowseDirectoryClicked(object sender, EventArgs e) => txtPath.Text = fbdSave.ShowDialog() == DialogResult.OK ? fbdSave.SelectedPath : txtPath.Text;
+        private void SplitCheckChanged(object sender, EventArgs e) => nudSplitInterval.Enabled = chkSplit.Checked;
 
-        private void nicon_DoubleClick(object sender, EventArgs e)
+        private void StatusIconClicked(object sender, EventArgs e)
         {
-            ShowInTaskbar = Visible = !(nicon.Visible = false);
-            BringToFront();
-            Activate();
-            Show();
+            this.ShowInTaskbar = this.Visible = !(nicon.Visible = false);
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
         }
 
-        private void frmMain_SizeChanged(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Minimized)
-            {
-                ShowInTaskbar = Visible = !(nicon.Visible = true);
-            }
-        }
+        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = WindowState == FormWindowState.Minimized ? this.Visible = !(nicon.Visible = true) : this.ShowInTaskbar;
 
-        private void chkRealtime_CheckedChanged(object sender, EventArgs e) => nudFreq.Enabled = !chkRealtime.Checked;
+        private void RealtimeCheckChanged(object sender, EventArgs e) => nudFreq.Enabled = !chkRealtime.Checked;
     }
 }

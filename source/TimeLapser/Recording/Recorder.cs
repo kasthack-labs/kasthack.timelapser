@@ -74,7 +74,7 @@ namespace kasthack.TimeLapser
                         using (var outstream = new VideoFileWriter())
                         {
                             outstream.Open(outfile, sourceRect.Width, sourceRect.Height, settings.Fps, settings.Codec, settings.Bitrate);
-                            using (ISnapper snapper = new DXSnapper())
+                            using (ISnapper snapper = GetSnapper(settings))
                             {
                                 using (var processingSemaphore = new SemaphoreSlim(snapper.MaxProcessingThreads))
                                 {
@@ -218,16 +218,24 @@ namespace kasthack.TimeLapser
             }
         }
 
+        private static ISnapper GetSnapper(RecordSettings settings)
+        {
+            switch (settings.SnapperType)
+            {
+                case SnapperType.DirectX: return new DXSnapper();
+                case SnapperType.Legacy: return new SDGSnapper();
+                default: throw new ArgumentOutOfRangeException($"Invalid snapper: {settings.SnapperType}");
+            }
+        }
+
         private void PreprocessFrame(Bitmap bmp, RecordSettings settings)
         {
-            if (!settings.Private)
+            if (settings.Private)
             {
-                return;
-            }
-
-            using (var gr = Graphics.FromImage(bmp))
-            {
-                gr.Clear(Color.Black);
+                using (var gr = Graphics.FromImage(bmp))
+                {
+                    gr.Clear(Color.Black);
+                }
             }
         }
 
@@ -247,7 +255,10 @@ namespace kasthack.TimeLapser
             var my = scr.Min(a => a.Bounds.Y);
             var w = scr.Max(a => a.Bounds.Width + a.Bounds.X) - mx;
             var h = scr.Max(a => a.Bounds.Height + a.Bounds.Y) - my;
-            screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = "All screens", Rect = new Rectangle(mx, my, w, h) });
+            if (screens.Count > 1)
+            {
+                screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = "All screens", Rect = new Rectangle(mx, my, w - (w % 2), h - (h % 2)) });
+            }
             return screens.ToArray();
         }
     }
