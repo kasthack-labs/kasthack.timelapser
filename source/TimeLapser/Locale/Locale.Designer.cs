@@ -61,6 +61,24 @@ namespace kasthack.TimeLapser.Locale {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All screeens.
+        /// </summary>
+        internal static string AllScreens {
+            get {
+                return ResourceManager.GetString("AllScreens", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Behind this window. Drag &amp; resize to tune.
+        /// </summary>
+        internal static string BehindThisWindowDragAndResizeToTune {
+            get {
+                return ResourceManager.GetString("BehindThisWindowDragAndResizeToTune", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bitrate(mbps).
         /// </summary>
         internal static string Bitrate {

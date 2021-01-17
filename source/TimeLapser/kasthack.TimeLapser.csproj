@@ -71,6 +71,11 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Locale.resx</DependentUpon>
     </Compile>
+    <Compile Include="Locale\Locale.zh.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Locale.zh.resx</DependentUpon>
+    </Compile>
     <Compile Include="Recording\DisposableBase.cs" />
     <Compile Include="Recording\DX\DXExtensions.cs" />
     <Compile Include="Recording\DX\DXSnapperInput.cs" />
@@ -98,6 +103,10 @@
     <EmbeddedResource Include="Locale\Locale.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Locale.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locale\Locale.zh.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Locale.zh.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

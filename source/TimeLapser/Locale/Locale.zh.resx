@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -117,49 +117,49 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="BehindThisWindowDragAndResizeToTune" xml:space="preserve">
-    <value>Под этим окном. Измените размер/положение для настройки</value>
+  <data name="AllScreens" xml:space="preserve">
+    <value>所有画面</value>
   </data>
   <data name="Bitrate" xml:space="preserve">
-    <value>Битрейт(MBps)</value>
+    <value>比特率(mbps)</value>
   </data>
   <data name="ElapsedFormatStirng" xml:space="preserve">
-    <value>Прошло: {0:g}</value>
+    <value>已过去: {0:g}</value>
   </data>
   <data name="Format" xml:space="preserve">
-    <value>Формат</value>
+    <value>格式</value>
   </data>
   <data name="Framerate" xml:space="preserve">
-    <value>Фреймрейт</value>
+    <value>帧率</value>
   </data>
   <data name="IntervalMs" xml:space="preserve">
-    <value>Интервалl(мс)</value>
+    <value>间隔(ms)</value>
   </data>
   <data name="OutputPath" xml:space="preserve">
-    <value>Папка для сохранения</value>
+    <value>输出路径</value>
   </data>
   <data name="Pending" xml:space="preserve">
-    <value>Ожидание</value>
+    <value>待定</value>
   </data>
   <data name="ProgramName" xml:space="preserve">
     <value>Timelapser by kasthack</value>
   </data>
   <data name="Realtime" xml:space="preserve">
-    <value>В реальном времени</value>
+    <value>实时</value>
   </data>
   <data name="Recorder" xml:space="preserve">
-    <value>Метод записи</value>
+    <value>录制方式</value>
   </data>
   <data name="Screen" xml:space="preserve">
-    <value>Экран</value>
+    <value>屏幕</value>
   </data>
   <data name="SplitEveryNMinutes" xml:space="preserve">
-    <value>Разбить по N минут</value>
+    <value>每N分钟分割</value>
   </data>
   <data name="StartRecording" xml:space="preserve">
-    <value>Запуск</value>
+    <value>开始</value>
   </data>
   <data name="StopRecording" xml:space="preserve">
-    <value>Стоп</value>
+    <value>结束</value>
   </data>
 </root>

@@ -15,7 +15,7 @@
         {
             if (disposing && (components != null))
             {
-                components.Dispose(); nicon.Dispose();
+                components.Dispose(); trayIcon.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -47,7 +47,7 @@
             this.fbdSave = new System.Windows.Forms.FolderBrowserDialog();
             this.chkSplit = new System.Windows.Forms.CheckBox();
             this.nudSplitInterval = new System.Windows.Forms.NumericUpDown();
-            this.nicon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.trayIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.chkRealtime = new System.Windows.Forms.CheckBox();
             this.lblSnapper = new System.Windows.Forms.Label();
             this.cmbSnapper = new System.Windows.Forms.ComboBox();
@@ -282,10 +282,10 @@
             0,
             0});
             // 
-            // nicon
+            // trayIcon
             // 
-            this.nicon.Text = "Timelapser by kasthack";
-            this.nicon.Click += new System.EventHandler(this.StatusIconClicked);
+            this.trayIcon.Text = "__Timelapser by kasthack";
+            this.trayIcon.Click += new System.EventHandler(this.StatusIconClicked);
             // 
             // chkRealtime
             // 
@@ -343,13 +343,15 @@
             this.Controls.Add(this.lblFormat);
             this.Controls.Add(this.lblPath);
             this.Controls.Add(this.txtPath);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MaximizeBox = false;
+            this.MinimumSize = new System.Drawing.Size(542, 542);
             this.Name = "frmMain";
             this.Text = "___Timelapser by kasthack";
             this.Load += new System.EventHandler(this.FormLoad);
+            this.ResizeEnd += new System.EventHandler(this.frmMain_ResizeEnd);
             this.SizeChanged += new System.EventHandler(this.HandleSizeChanged);
+            this.Move += new System.EventHandler(this.frmMain_Move);
             ((System.ComponentModel.ISupportInitialize)(this.nudFreq)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.budBitrate)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudFramerate)).EndInit();
@@ -379,7 +381,7 @@
         private System.Windows.Forms.FolderBrowserDialog fbdSave;
         private System.Windows.Forms.CheckBox chkSplit;
         private System.Windows.Forms.NumericUpDown nudSplitInterval;
-        private System.Windows.Forms.NotifyIcon nicon;
+        private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.CheckBox chkRealtime;
         private System.Windows.Forms.Label lblSnapper;
         private System.Windows.Forms.ComboBox cmbSnapper;
