@@ -7,6 +7,8 @@ using System.Windows.Forms;
 
 using Accord.Video.FFMPEG;
 
+using kasthack.TimeLapser.Properties;
+
 namespace kasthack.TimeLapser
 {
     public partial class frmMain : Form
@@ -18,6 +20,7 @@ namespace kasthack.TimeLapser
         {
             InitializeComponent();
             this.ApplyLocale();
+            this.trayIcon.Icon = this.Icon = Resources.icon;
         }
 
         private void ApplyLocale()
@@ -34,6 +37,7 @@ namespace kasthack.TimeLapser
             this.chkSplit.Text = Locale.Locale.SplitEveryNMinutes;
             this.lblTime.Text = Locale.Locale.Pending;
             this.btnGo.Text = Locale.Locale.StartRecording;
+            this.trayIcon.Text = Locale.Locale.ProgramName;
         }
 
         private void StartRecordingClicked(object sender, EventArgs e)
@@ -108,12 +112,12 @@ namespace kasthack.TimeLapser
 
         private void StatusIconClicked(object sender, EventArgs e)
         {
-            this.ShowInTaskbar = this.Visible = !(nicon.Visible = false);
+            this.ShowInTaskbar = this.Visible = !(trayIcon.Visible = false);
             this.Show();
             this.WindowState = FormWindowState.Normal;
         }
 
-        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = WindowState == FormWindowState.Minimized ? this.Visible = !(nicon.Visible = true) : this.ShowInTaskbar;
+        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = WindowState == FormWindowState.Minimized ? this.Visible = !(trayIcon.Visible = true) : this.ShowInTaskbar;
 
         private void RealtimeCheckChanged(object sender, EventArgs e) => nudFreq.Enabled = !chkRealtime.Checked;
     }

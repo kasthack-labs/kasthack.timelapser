@@ -15,7 +15,7 @@
         {
             if (disposing && (components != null))
             {
-                components.Dispose(); nicon.Dispose();
+                components.Dispose(); trayIcon.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -47,7 +47,7 @@
             this.fbdSave = new System.Windows.Forms.FolderBrowserDialog();
             this.chkSplit = new System.Windows.Forms.CheckBox();
             this.nudSplitInterval = new System.Windows.Forms.NumericUpDown();
-            this.nicon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.trayIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.chkRealtime = new System.Windows.Forms.CheckBox();
             this.lblSnapper = new System.Windows.Forms.Label();
             this.cmbSnapper = new System.Windows.Forms.ComboBox();
@@ -282,10 +282,10 @@
             0,
             0});
             // 
-            // nicon
+            // trayIcon
             // 
-            this.nicon.Text = "Timelapser by kasthack";
-            this.nicon.Click += new System.EventHandler(this.StatusIconClicked);
+            this.trayIcon.Text = "__Timelapser by kasthack";
+            this.trayIcon.Click += new System.EventHandler(this.StatusIconClicked);
             // 
             // chkRealtime
             // 
@@ -379,7 +379,7 @@
         private System.Windows.Forms.FolderBrowserDialog fbdSave;
         private System.Windows.Forms.CheckBox chkSplit;
         private System.Windows.Forms.NumericUpDown nudSplitInterval;
-        private System.Windows.Forms.NotifyIcon nicon;
+        private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.CheckBox chkRealtime;
         private System.Windows.Forms.Label lblSnapper;
         private System.Windows.Forms.ComboBox cmbSnapper;
