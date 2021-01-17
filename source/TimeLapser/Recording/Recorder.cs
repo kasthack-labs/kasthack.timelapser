@@ -61,7 +61,7 @@ namespace kasthack.TimeLapser
                 var splitInterval = settings.SplitInterval * minute / inputSnapInterval;//split every N frames
                 var inputExpectedFps = inputSnapInterval > 0 ? second / inputSnapInterval : 0;
                 var sourceRect = settings.CaptureRectangle;
-
+                
                 var framesWritten = 0L;
                 using (var tmr = new Timer())
                 {
@@ -243,23 +243,6 @@ namespace kasthack.TimeLapser
         {
             Recording = false;
             _stopWaiter.Wait();
-        }
-
-        public static IEnumerable<ScreenInfo> GetScreenInfos()
-        {
-            var scr = Screen.AllScreens.OrderBy(a => a.Bounds.X).ToArray();
-            var screens = Enumerable.Range(1, scr.Length)
-                        .Select(a => new ScreenInfo { Id = a, Name = scr[a - 1].DeviceName, Rect = scr[a - 1].Bounds })
-                        .ToList();
-            var mx = scr.Min(a => a.Bounds.X);
-            var my = scr.Min(a => a.Bounds.Y);
-            var w = scr.Max(a => a.Bounds.Width + a.Bounds.X) - mx;
-            var h = scr.Max(a => a.Bounds.Height + a.Bounds.Y) - my;
-            if (screens.Count > 1)
-            {
-                screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = Locale.Locale.AllScreens, Rect = new Rectangle(mx, my, w - (w % 2), h - (h % 2)) });
-            }
-            return screens.ToArray();
         }
     }
 }

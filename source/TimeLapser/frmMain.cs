@@ -2,6 +2,7 @@
 #define TESTING
 #endif
 using System;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
@@ -15,12 +16,14 @@ namespace kasthack.TimeLapser
     {
         private readonly Recorder _recorder = new Recorder();
         private RecordSettings _settings;
+        private ScreenInfo formScreenInfo;
 
         public frmMain()
         {
             InitializeComponent();
             this.ApplyLocale();
             this.trayIcon.Icon = this.Icon = Resources.icon;
+            this.formScreenInfo = new ScreenInfo { Id = 31337, Name = "Behind this window. Drag & resize to tune" };
         }
 
         private void ApplyLocale()
@@ -70,6 +73,7 @@ namespace kasthack.TimeLapser
 
         private void SetRecordingState(bool recordRunning)
         {
+            this.FormBorderStyle = recordRunning ? FormBorderStyle.FixedSingle : FormBorderStyle.Sizable;
             btnGo.Text = recordRunning ? Locale.Locale.StopRecording : Locale.Locale.StartRecording;
             lblTime.Text = !recordRunning ? Locale.Locale.Pending : string.Empty;
             txtPath.Enabled
@@ -87,9 +91,13 @@ namespace kasthack.TimeLapser
 
         private void FormLoad(object sender, EventArgs e)
         {
+            var screenInfos = ScreenInfo.GetScreenInfos();
+            UpdateFormScreenInfo();
+            screenInfos.Add(formScreenInfo);
+
             cmbSnapper.DataSource = Enum.GetValues(typeof(SnapperType)) as SnapperType[];
             cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
-            cmbScreen.DataSource = Recorder.GetScreenInfos();
+            cmbScreen.DataSource = screenInfos;
             cmbFormat.SelectedIndex = 0;
 
             //enable legacy recorder for win7 & earlier
@@ -120,5 +128,11 @@ namespace kasthack.TimeLapser
         private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = WindowState == FormWindowState.Minimized ? this.Visible = !(trayIcon.Visible = true) : this.ShowInTaskbar;
 
         private void RealtimeCheckChanged(object sender, EventArgs e) => nudFreq.Enabled = !chkRealtime.Checked;
+
+        private void frmMain_ResizeEnd(object sender, EventArgs e) => this.UpdateFormScreenInfo();
+        private void frmMain_Move(object sender, EventArgs e) => this.UpdateFormScreenInfo();
+
+        private void UpdateFormScreenInfo() => this.formScreenInfo.Rect = ScreenInfo.NormalizeRectangle(new Rectangle(this.Location, this.Size));
+
     }
 }

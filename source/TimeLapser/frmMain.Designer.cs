@@ -343,13 +343,15 @@
             this.Controls.Add(this.lblFormat);
             this.Controls.Add(this.lblPath);
             this.Controls.Add(this.txtPath);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MaximizeBox = false;
+            this.MinimumSize = new System.Drawing.Size(542, 542);
             this.Name = "frmMain";
             this.Text = "___Timelapser by kasthack";
             this.Load += new System.EventHandler(this.FormLoad);
+            this.ResizeEnd += new System.EventHandler(this.frmMain_ResizeEnd);
             this.SizeChanged += new System.EventHandler(this.HandleSizeChanged);
+            this.Move += new System.EventHandler(this.frmMain_Move);
             ((System.ComponentModel.ISupportInitialize)(this.nudFreq)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.budBitrate)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudFramerate)).EndInit();
