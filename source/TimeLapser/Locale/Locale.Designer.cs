@@ -70,6 +70,15 @@ namespace kasthack.TimeLapser.Locale {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Behind this window. Drag &amp; resize to tune.
+        /// </summary>
+        internal static string BehindThisWindowDragAndResizeToTune {
+            get {
+                return ResourceManager.GetString("BehindThisWindowDragAndResizeToTune", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bitrate(mbps).
         /// </summary>
         internal static string Bitrate {

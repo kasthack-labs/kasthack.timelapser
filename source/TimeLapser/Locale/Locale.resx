@@ -120,6 +120,9 @@
   <data name="AllScreens" xml:space="preserve">
     <value>All screeens</value>
   </data>
+  <data name="BehindThisWindowDragAndResizeToTune" xml:space="preserve">
+    <value>Behind this window. Drag &amp; resize to tune</value>
+  </data>
   <data name="Bitrate" xml:space="preserve">
     <value>Bitrate(mbps)</value>
   </data>

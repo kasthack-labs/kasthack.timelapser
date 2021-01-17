@@ -23,7 +23,7 @@ namespace kasthack.TimeLapser
             InitializeComponent();
             this.ApplyLocale();
             this.trayIcon.Icon = this.Icon = Resources.icon;
-            this.formScreenInfo = new ScreenInfo { Id = 31337, Name = "Behind this window. Drag & resize to tune" };
+            this.formScreenInfo = new ScreenInfo { Id = 31337, Name = Locale.Locale.BehindThisWindowDragAndResizeToTune };
         }
 
         private void ApplyLocale()
