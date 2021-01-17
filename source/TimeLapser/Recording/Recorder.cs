@@ -257,7 +257,7 @@ namespace kasthack.TimeLapser
             var h = scr.Max(a => a.Bounds.Height + a.Bounds.Y) - my;
             if (screens.Count > 1)
             {
-                screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = "All screens", Rect = new Rectangle(mx, my, w - (w % 2), h - (h % 2)) });
+                screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = Locale.Locale.AllScreens, Rect = new Rectangle(mx, my, w - (w % 2), h - (h % 2)) });
             }
             return screens.ToArray();
         }

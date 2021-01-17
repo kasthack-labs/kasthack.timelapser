@@ -121,7 +121,7 @@
     <value>Битрейт(MBps)</value>
   </data>
   <data name="ElapsedFormatStirng" xml:space="preserve">
-    <value>Elapsed :{0:g}</value>
+    <value>Elapsed: {0:g}</value>
   </data>
   <data name="Format" xml:space="preserve">
     <value>Формат</value>
