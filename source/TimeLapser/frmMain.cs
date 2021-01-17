@@ -87,6 +87,12 @@ namespace kasthack.TimeLapser
             cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
             cmbScreen.DataSource = Recorder.GetScreenInfos();
             cmbFormat.SelectedIndex = 0;
+
+            //enable legacy recorder for win7 & earlier
+            if (Environment.OSVersion.Version <= new Version(6, 1))
+            {
+                cmbSnapper.SelectedIndex = 1;
+            }
             cmbScreen.SelectedIndex = cmbScreen.Items.Count - 1;
             txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
 #if TESTING
