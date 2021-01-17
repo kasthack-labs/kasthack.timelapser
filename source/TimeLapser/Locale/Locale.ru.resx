@@ -121,7 +121,7 @@
     <value>Битрейт(MBps)</value>
   </data>
   <data name="ElapsedFormatStirng" xml:space="preserve">
-    <value>Elapsed: {0:g}</value>
+    <value>Прошло: {0:g}</value>
   </data>
   <data name="Format" xml:space="preserve">
     <value>Формат</value>
@@ -130,7 +130,7 @@
     <value>Фреймрейт</value>
   </data>
   <data name="IntervalMs" xml:space="preserve">
-    <value>Interval(ms)</value>
+    <value>Интервалl(мс)</value>
   </data>
   <data name="OutputPath" xml:space="preserve">
     <value>Папка для сохранения</value>
@@ -151,7 +151,7 @@
     <value>Экран</value>
   </data>
   <data name="SplitEveryNMinutes" xml:space="preserve">
-    <value>Split every N minutes</value>
+    <value>Разбить по N минут</value>
   </data>
   <data name="StartRecording" xml:space="preserve">
     <value>Запуск</value>
