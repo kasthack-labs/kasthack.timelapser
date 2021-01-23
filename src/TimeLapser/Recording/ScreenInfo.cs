@@ -1,45 +1,37 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Windows.Forms;
-
-namespace kasthack.TimeLapser
+﻿namespace kasthack.TimeLapser
 {
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Drawing;
+    using System.Linq;
+    using System.Runtime.CompilerServices;
+    using System.Windows.Forms;
+
     public class ScreenInfo : INotifyPropertyChanged
     {
         private string name;
         private int id;
         private Rectangle rect;
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public Rectangle Rect
         {
-            get { return rect; }
-            set { Update(value, ref rect); }
+            get => this.rect;
+            set => this.Update(value, ref this.rect);
         }
+
         public int Id
         {
-            get { return id; }
-            set { Update(value, ref id); }
+            get => this.id;
+            set => this.Update(value, ref this.id);
         }
+
         public string Name
         {
-            get { return name; }
-            set { Update(value, ref name); }
+            get => this.name;
+            set => this.Update(value, ref this.name);
         }
-
-        public override string ToString() => $"{Name}({Id})";
-
-        private void Update<T>(T value, ref T field, [CallerMemberName] string property = null)
-        {
-            if (!EqualityComparer<T>.Default.Equals(value, field))
-            {
-                field = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
-            }
-        }
-        public event PropertyChangedEventHandler PropertyChanged;
 
         public static IList<ScreenInfo> GetScreenInfos()
         {
@@ -55,12 +47,21 @@ namespace kasthack.TimeLapser
             {
                 screens.Add(new ScreenInfo { Id = screens.Count + 1, Name = Locale.Locale.AllScreens, Rect = NormalizeRectangle(new Rectangle(mx, my, w, h)) });
             }
+
             return screens.ToList();
         }
 
-        public static Rectangle NormalizeRectangle(Rectangle source)
+        public static Rectangle NormalizeRectangle(Rectangle source) => new(source.Location, new Size(source.Size.Width - (source.Size.Width % 2), source.Size.Height - (source.Size.Height % 2)));
+
+        public override string ToString() => $"{this.Name}({this.Id})";
+
+        private void Update<T>(T value, ref T field, [CallerMemberName] string property = null)
         {
-            return new Rectangle(source.Location, new Size(source.Size.Width - source.Size.Width % 2, source.Size.Height - source.Size.Height % 2));
+            if (!EqualityComparer<T>.Default.Equals(value, field))
+            {
+                field = value;
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+            }
         }
     }
 }

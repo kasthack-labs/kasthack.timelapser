@@ -1,13 +1,13 @@
-﻿using System;
-using System.Drawing;
-using System.Threading.Tasks;
-
-namespace kasthack.TimeLapser
+﻿namespace kasthack.TimeLapser
 {
+    using System;
+    using System.Drawing;
+    using System.Threading.Tasks;
+
     /*
      * simple snapper, utilizing System.Drawing.Graphics.CopyFromScreen
      */
-    class SDGSnapper : DisposableBase, ISnapper
+    internal class SDGSnapper : DisposableBase, ISnapper
     {
         private Bitmap renderedFrame;
         private Graphics graphics;
@@ -17,37 +17,41 @@ namespace kasthack.TimeLapser
 
         public void SetSource(Rectangle sourceRect)
         {
-            ThrowIfDisposed();
-            DisposeNative();
-            sourceRectangle = sourceRect;
+            _ = this.ThrowIfDisposed();
+            this.DisposeNative();
+            this.sourceRectangle = sourceRect;
 
-            renderedFrame = new Bitmap(sourceRect.Width, sourceRect.Height);
-            graphics = Graphics.FromImage(renderedFrame);
+            this.renderedFrame = new Bitmap(sourceRect.Width, sourceRect.Height);
+            this.graphics = Graphics.FromImage(this.renderedFrame);
         }
-        public async Task<Bitmap> Snap(int interval = 0)
+
+        public Task<Bitmap> Snap(int interval = 0)
         {
-            ThrowIfDisposed();
-            if (sourceRectangle == null)
+            _ = this.ThrowIfDisposed();
+            if (this.sourceRectangle == null)
             {
                 throw new InvalidOperationException("You have to specify source");
             }
-            var src = sourceRectangle.Value;
-            graphics.CopyFromScreen(src.X, src.Y, 0, 0, renderedFrame.Size);
-            graphics.Flush();
-            return renderedFrame;//ok, that's a bad idea but we can't allocate fuckton of memory for each frame
+
+            var src = this.sourceRectangle.Value;
+            this.graphics.CopyFromScreen(src.X, src.Y, 0, 0, this.renderedFrame.Size);
+            this.graphics.Flush();
+            return Task.FromResult(this.renderedFrame); // ok, that's a bad idea but we can't allocate fuckton of memory for each frame
         }
+
         public override void Dispose()
         {
-            DisposeNative();
+            this.DisposeNative();
             base.Dispose();
         }
+
         private void DisposeNative()
         {
-            graphics?.Dispose();
-            renderedFrame?.Dispose();
-            sourceRectangle = null;
-            graphics = null;
-            renderedFrame = null;
+            this.graphics?.Dispose();
+            this.renderedFrame?.Dispose();
+            this.sourceRectangle = null;
+            this.graphics = null;
+            this.renderedFrame = null;
         }
     }
 }

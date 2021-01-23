@@ -1,14 +1,16 @@
-﻿using System;
-using System.Drawing;
-
-using Accord.Video.FFMPEG;
-
-namespace kasthack.TimeLapser
+﻿namespace kasthack.TimeLapser
 {
+    using System;
+    using System.Drawing;
+
+    using Accord.Video.FFMPEG;
 
     public class RecordSettings
     {
-        public RecordSettings() { }
+        public RecordSettings()
+        {
+        }
+
         public RecordSettings(
             string outputPath,
             Rectangle captureRectangle,
@@ -21,62 +23,66 @@ namespace kasthack.TimeLapser
             bool realtime = false,
             SnapperType snapperType = SnapperType.DirectX)
         {
-            OutputPath = outputPath;
-            CaptureRectangle = captureRectangle;
-            OnFrameWritten = onFrameWritten;
-            Interval = interval;
-            Fps = fps;
-            Codec = codec;
-            Bitrate = bitrate;
-            SplitInterval = splitInterval;
-            Private = false;
-            Realtime = realtime;
-            SnapperType = snapperType;
+            this.OutputPath = outputPath;
+            this.CaptureRectangle = captureRectangle;
+            this.OnFrameWritten = onFrameWritten;
+            this.Interval = interval;
+            this.Fps = fps;
+            this.Codec = codec;
+            this.Bitrate = bitrate;
+            this.SplitInterval = splitInterval;
+            this.Private = false;
+            this.Realtime = realtime;
+            this.SnapperType = snapperType;
         }
+
         /// <summary>
-        /// Split every N input seconds
+        /// Gets split every N input seconds.
         /// </summary>
         public double? SplitInterval { get; }
+
         /// <summary>
-        /// Output bitrate
+        /// Gets output bitrate.
         /// </summary>
         public int Bitrate { get; }
+
         /// <summary>
-        /// Output codec
+        /// Gets output codec.
         /// </summary>
         public VideoCodec Codec { get; }
+
         /// <summary>
-        /// Capture rectangle
+        /// Gets capture rectangle.
         /// </summary>
         public Rectangle CaptureRectangle { get; }
+
         /// <summary>
-        /// Snap every N seconds
+        /// Gets interval between snapshots in seconds.
         /// </summary>
         public int Interval { get; }
+
         /// <summary>
-        /// Output framerate
+        /// Gets output framerate.
         /// </summary>
         public int Fps { get; }
+
         /// <summary>
-        /// Output directory
+        /// Gets output directory.
         /// </summary>
         public string OutputPath { get; }
+
         /// <summary>
-        /// I dunno
+        /// Gets or sets a value indicating whether i dunno.
         /// </summary>
         public bool Private { get; set; }
 
         public Action<TimeSpan> OnFrameWritten { get; }
+
         /// <summary>
-        /// Ignore interval and snap in realtime
+        /// Gets a value indicating whether ignore interval and snap in realtime.
         /// </summary>
         public bool Realtime { get; }
 
         public SnapperType SnapperType { get; }
-    }
-    public enum SnapperType
-    {
-        DirectX,
-        Legacy
     }
 }

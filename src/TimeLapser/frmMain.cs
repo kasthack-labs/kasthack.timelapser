@@ -1,26 +1,27 @@
 ﻿#if DEBUG
 #define TESTING
 #endif
-using System;
-using System.Drawing;
-using System.IO;
-using System.Windows.Forms;
-
-using Accord.Video.FFMPEG;
-
-using kasthack.TimeLapser.Properties;
 
 namespace kasthack.TimeLapser
 {
-    public partial class frmMain : Form
-    {
-        private readonly Recorder _recorder = new Recorder();
-        private RecordSettings _settings;
-        private ScreenInfo formScreenInfo;
+    using System;
+    using System.Drawing;
+    using System.IO;
+    using System.Windows.Forms;
 
-        public frmMain()
+    using Accord.Video.FFMPEG;
+
+    using kasthack.TimeLapser.Properties;
+
+    public partial class FrmMain : Form
+    {
+        private readonly Recorder recorder = new();
+        private RecordSettings settings;
+        private readonly ScreenInfo formScreenInfo;
+
+        public FrmMain()
         {
-            InitializeComponent();
+            this.InitializeComponent();
             this.ApplyLocale();
             this.trayIcon.Icon = this.Icon = Resources.icon;
             this.formScreenInfo = new ScreenInfo { Id = 31337, Name = Locale.Locale.BehindThisWindowDragAndResizeToTune };
@@ -45,94 +46,95 @@ namespace kasthack.TimeLapser
 
         private void StartRecordingClicked(object sender, EventArgs e)
         {
-            if (_recorder.Recording)
+            if (this.recorder.Recording)
             {
-                _recorder.Stop();
-                SetRecordingState(false);
+                this.recorder.Stop();
+                this.SetRecordingState(false);
             }
             else
             {
-                SetRecordingState(true);
-                this._settings = new RecordSettings(
-                    outputPath: txtPath.Text,
-                    captureRectangle: ((ScreenInfo)cmbScreen.SelectedItem).Rect,
-                    fps: (int)nudFramerate.Value,
-                    interval: (int)nudFreq.Value,
-                    codec: (VideoCodec)cmbFormat.SelectedItem,
-                    bitrate: (int)budBitrate.Value << 20,
-                    splitInterval: chkSplit.Checked ? (double?)nudSplitInterval.Value : null,
-                    onFrameWritten: (a) => BeginInvoke((Action)(() => lblTime.Text = string.Format(Locale.Locale.ElapsedFormatStirng, a))),
-                    realtime: chkRealtime.Checked,
-                    snapperType: (SnapperType)cmbSnapper.SelectedItem
-                );
-                _recorder.Start(
-                    _settings
-                );
+                this.SetRecordingState(true);
+                this.settings = new RecordSettings(
+                    outputPath: this.txtPath.Text,
+                    captureRectangle: ((ScreenInfo)this.cmbScreen.SelectedItem).Rect,
+                    fps: (int)this.nudFramerate.Value,
+                    interval: (int)this.nudFreq.Value,
+                    codec: (VideoCodec)this.cmbFormat.SelectedItem,
+                    bitrate: (int)this.budBitrate.Value << 20,
+                    splitInterval: this.chkSplit.Checked ? (double?)this.nudSplitInterval.Value : null,
+                    onFrameWritten: (a) => this.BeginInvoke((Action)(() => this.lblTime.Text = string.Format(Locale.Locale.ElapsedFormatStirng, a))),
+                    realtime: this.chkRealtime.Checked,
+                    snapperType: (SnapperType)this.cmbSnapper.SelectedItem);
+                this.recorder.Start(this.settings);
             }
         }
 
         private void SetRecordingState(bool recordRunning)
         {
             this.FormBorderStyle = recordRunning ? FormBorderStyle.FixedSingle : FormBorderStyle.Sizable;
-            btnGo.Text = recordRunning ? Locale.Locale.StopRecording : Locale.Locale.StartRecording;
-            lblTime.Text = !recordRunning ? Locale.Locale.Pending : string.Empty;
-            txtPath.Enabled
-                = btnbrs.Enabled
-                = nudFreq.Enabled
-                = nudFramerate.Enabled
-                = cmbFormat.Enabled
-                = budBitrate.Enabled
-                = cmbScreen.Enabled
-                = chkSplit.Enabled
-                = nudSplitInterval.Enabled
-                = chkRealtime.Enabled
+            this.btnGo.Text = recordRunning ? Locale.Locale.StopRecording : Locale.Locale.StartRecording;
+            this.lblTime.Text = !recordRunning ? Locale.Locale.Pending : string.Empty;
+            this.txtPath.Enabled
+                = this.btnbrs.Enabled
+                = this.nudFreq.Enabled
+                = this.nudFramerate.Enabled
+                = this.cmbFormat.Enabled
+                = this.budBitrate.Enabled
+                = this.cmbScreen.Enabled
+                = this.chkSplit.Enabled
+                = this.nudSplitInterval.Enabled
+                = this.chkRealtime.Enabled
+                = this.cmbSnapper.Enabled
                 = !recordRunning;
         }
 
         private void FormLoad(object sender, EventArgs e)
         {
             var screenInfos = ScreenInfo.GetScreenInfos();
-            UpdateFormScreenInfo();
-            screenInfos.Add(formScreenInfo);
+            this.UpdateFormScreenInfo();
+            screenInfos.Add(this.formScreenInfo);
 
-            cmbSnapper.DataSource = Enum.GetValues(typeof(SnapperType)) as SnapperType[];
-            cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
-            cmbScreen.DataSource = screenInfos;
-            cmbFormat.SelectedIndex = 0;
+            this.cmbSnapper.DataSource = Enum.GetValues(typeof(SnapperType)) as SnapperType[];
+            this.cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
+            this.cmbScreen.DataSource = screenInfos;
+            this.cmbFormat.SelectedIndex = 0;
 
-            //enable legacy recorder for win7 & earlier
+            // enable legacy recorder for win7 & earlier
             if (Environment.OSVersion.Version <= new Version(6, 1))
             {
-                cmbSnapper.SelectedIndex = 1;
+                this.cmbSnapper.SelectedIndex = 1;
             }
-            cmbScreen.SelectedIndex = cmbScreen.Items.Count - 1;
-            txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+
+            this.cmbScreen.SelectedIndex = this.cmbScreen.Items.Count - 1;
+            this.txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
 #if TESTING
-            txtPath.Text = Path.Combine(txtPath.Text, "dbg_scr");
-            chkSplit.Checked = true;
-            nudSplitInterval.Value = 1;
-            chkRealtime.Checked = true;
-            cmbScreen.SelectedIndex = 1;
+            this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
+            this.chkSplit.Checked = true;
+            this.nudSplitInterval.Value = 1;
+            this.chkRealtime.Checked = true;
+            this.cmbScreen.SelectedIndex = 1;
 #endif
         }
-        private void BrowseDirectoryClicked(object sender, EventArgs e) => txtPath.Text = fbdSave.ShowDialog() == DialogResult.OK ? fbdSave.SelectedPath : txtPath.Text;
-        private void SplitCheckChanged(object sender, EventArgs e) => nudSplitInterval.Enabled = chkSplit.Checked;
+
+        private void BrowseDirectoryClicked(object sender, EventArgs e) => this.txtPath.Text = this.fbdSave.ShowDialog() == DialogResult.OK ? this.fbdSave.SelectedPath : this.txtPath.Text;
+
+        private void SplitCheckChanged(object sender, EventArgs e) => this.nudSplitInterval.Enabled = this.chkSplit.Checked;
 
         private void StatusIconClicked(object sender, EventArgs e)
         {
-            this.ShowInTaskbar = this.Visible = !(trayIcon.Visible = false);
+            this.ShowInTaskbar = this.Visible = !(this.trayIcon.Visible = false);
             this.Show();
             this.WindowState = FormWindowState.Normal;
         }
 
-        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = WindowState == FormWindowState.Minimized ? this.Visible = !(trayIcon.Visible = true) : this.ShowInTaskbar;
+        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = this.WindowState == FormWindowState.Minimized ? this.Visible = !(this.trayIcon.Visible = true) : this.ShowInTaskbar;
 
-        private void RealtimeCheckChanged(object sender, EventArgs e) => nudFreq.Enabled = !chkRealtime.Checked;
+        private void RealtimeCheckChanged(object sender, EventArgs e) => this.nudFreq.Enabled = !this.chkRealtime.Checked;
 
-        private void frmMain_ResizeEnd(object sender, EventArgs e) => this.UpdateFormScreenInfo();
-        private void frmMain_Move(object sender, EventArgs e) => this.UpdateFormScreenInfo();
+        private void FrmMain_ResizeEnd(object sender, EventArgs e) => this.UpdateFormScreenInfo();
+
+        private void FrmMain_Move(object sender, EventArgs e) => this.UpdateFormScreenInfo();
 
         private void UpdateFormScreenInfo() => this.formScreenInfo.Rect = ScreenInfo.NormalizeRectangle(new Rectangle(this.Location, this.Size));
-
     }
 }

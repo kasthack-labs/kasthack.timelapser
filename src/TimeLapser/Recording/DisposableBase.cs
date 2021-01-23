@@ -1,17 +1,17 @@
-﻿using System;
+﻿namespace kasthack.TimeLapser
+{
+    using System;
 
-namespace kasthack.TimeLapser {
-    public abstract class DisposableBase : IDisposable {
-        private bool _disposed = false;
-        protected bool ThrowIfDisposed() {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(GetType().Name);
-            }
+    public abstract class DisposableBase : IDisposable
+    {
+        private bool disposed = false;
 
-            return true;
+        public virtual void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            this.disposed = true;
         }
 
-        public virtual void Dispose() => _disposed = true;
+        protected bool ThrowIfDisposed() => this.disposed ? throw new ObjectDisposedException(this.GetType().Name) : true;
     }
 }
