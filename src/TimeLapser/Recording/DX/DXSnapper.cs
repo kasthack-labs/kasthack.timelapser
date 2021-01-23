@@ -1,22 +1,22 @@
 ﻿#define ParallelSnap
-using System;
-using System.Drawing;
-using SharpDX.DXGI;
-using System.Drawing.Imaging;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.Generic;
-using System.Diagnostics;
-
 namespace kasthack.TimeLapser
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using SharpDX.DXGI;
+
     internal partial class DXSnapper : DisposableBase, ISnapper
     {
-        public const int renderPoolSize = 3;
-        private const int destPixelSize = 3;
-        private const int sourcePixelSize = sizeof(int);
-        private const PixelFormat destPixelFormat = PixelFormat.Format24bppRgb;
-        private const Format sourcePixelFormat = Format.B8G8R8A8_UNorm;
+        public const int RenderPoolSize = 3;
+        private const int DestPixelSize = 3;
+        private const int SourcePixelSize = sizeof(int);
+        private const PixelFormat DestPixelFormat = PixelFormat.Format24bppRgb;
+        private const Format SourcePixelFormat = Format.B8G8R8A8_UNorm;
 
         private int currentRenderIndex = 0;
         private Factory1 factory;
@@ -24,50 +24,48 @@ namespace kasthack.TimeLapser
         private Rectangle? sourceRect;
         private DXSnapperInput[] inputs;
 
-        public int MaxProcessingThreads => renderPoolSize;
+        public int MaxProcessingThreads => RenderPoolSize;
 
         public void SetSource(Rectangle sourceRect)
         {
-            ThrowIfDisposed();
-            DisposeNative();
+            _ = this.ThrowIfDisposed();
+            this.DisposeNative();
 
             this.sourceRect = sourceRect;
-            factory = new Factory1();
-            inputs = GetCapturedOutputs().Select(a => new DXSnapperInput(factory, a.Item1, a.Item2, sourceRect)).ToArray();
-            renderBitmaps = Enumerable.Range(0, renderPoolSize).Select(a => new Bitmap(sourceRect.Width, sourceRect.Height, destPixelFormat)).ToArray();
+            this.factory = new Factory1();
+            this.inputs = this.GetCapturedOutputs().Select(a => new DXSnapperInput(this.factory, a.Item1, a.Item2, sourceRect)).ToArray();
+            this.renderBitmaps = Enumerable.Range(0, RenderPoolSize).Select(_ => new Bitmap(sourceRect.Width, sourceRect.Height, DestPixelFormat)).ToArray();
         }
+
         private Tuple<int, int>[] GetCapturedOutputs()
         {
-            var ret = new List<Tuple<int, int>>(6);//most cases
-            for (var adapterIndex = factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
+            var ret = new List<Tuple<int, int>>(6); // most cases
+            for (var adapterIndex = this.factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
             {
-                using (var adapter = factory.GetAdapter1(adapterIndex))
+                using var adapter = this.factory.GetAdapter1(adapterIndex);
+                for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
                 {
-                    for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
+                    using var output = adapter.GetOutput(outputIndex);
+                    if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(this.sourceRect.Value))
                     {
-                        using (var output = adapter.GetOutput(outputIndex))
-                        {
-                            if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(sourceRect.Value))
-                            {
-                                ret.Add(new Tuple<int, int>(adapterIndex, outputIndex));
-                            }
-                        }
+                        ret.Add(new Tuple<int, int>(adapterIndex, outputIndex));
                     }
                 }
             }
 
             return ret.ToArray();
         }
+
         public async Task<Bitmap> Snap(int timeout = 0)
         {
-            ThrowIfDisposed();
-            if (sourceRect == null)
+            this.ThrowIfDisposed();
+            if (this.sourceRect == null)
             {
                 throw new InvalidOperationException("You have to specify source");
             }
 
-            currentRenderIndex = (currentRenderIndex + 1) % renderPoolSize;
-            var renderBitmap = renderBitmaps[currentRenderIndex];
+            this.currentRenderIndex = (this.currentRenderIndex + 1) % RenderPoolSize;
+            var renderBitmap = this.renderBitmaps[this.currentRenderIndex];
             BitmapData bitmap = null;
             try
             {
@@ -85,7 +83,7 @@ namespace kasthack.TimeLapser
 #if ParallelSnap
                 await Task.WhenAll(
 #endif
-                    inputs.Select(input =>
+                    this.inputs.Select(input =>
 #if ParallelSnap
                         Task.Run(() =>
                         {
@@ -117,41 +115,46 @@ namespace kasthack.TimeLapser
                     renderBitmap.UnlockBits(bitmap);
 #endif
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Debugger.Break();
                 }
             }
+
             return renderBitmap;
         }
+
         public override void Dispose()
         {
-            DisposeNative();
+            this.DisposeNative();
             base.Dispose();
         }
 
         private void DisposeNative()
         {
-            factory?.Dispose();
-            factory = null;
+            this.factory?.Dispose();
+            this.factory = null;
 
-            if (renderBitmaps != null)
+            if (this.renderBitmaps != null)
             {
-                for (var i = 0; i < renderBitmaps.Length; i++)
+                for (var i = 0; i < this.renderBitmaps.Length; i++)
                 {
-                    renderBitmaps[i]?.Dispose();
-                    renderBitmaps[i] = null;
+                    this.renderBitmaps[i]?.Dispose();
+                    this.renderBitmaps[i] = null;
                 }
-                renderBitmaps = null;
+
+                this.renderBitmaps = null;
             }
-            if (inputs != null)
+
+            if (this.inputs != null)
             {
-                for (var i = 0; i < inputs.Length; i++)
+                for (var i = 0; i < this.inputs.Length; i++)
                 {
-                    inputs[i]?.Dispose();
-                    inputs[i] = null;
+                    this.inputs[i]?.Dispose();
+                    this.inputs[i] = null;
                 }
-                inputs = null;
+
+                this.inputs = null;
             }
         }
     }
