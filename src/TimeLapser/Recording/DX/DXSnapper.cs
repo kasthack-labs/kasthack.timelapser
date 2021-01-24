@@ -56,36 +56,10 @@ namespace kasthack.TimeLapser
                  * Parallel snap renders every input at the same time using shared pointer
                  * Single threaded snap renders input sequentally and recreates bitmapdata for each render
                  */
-
-#if ParallelSnap
                 bitmap = renderBitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, renderBitmap.PixelFormat);
-#endif
-
-#if ParallelSnap
                 await Task.WhenAll(
-#endif
                     this.inputs.Select(input =>
-#if ParallelSnap
-                        Task.Run(() =>
-                        {
-#else
-                            bitmap = renderBitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, renderBitmap.PixelFormat);
-#endif
-                            input.Snap(bitmap, timeout);
-#if !ParallelSnap
-                            renderBitmap.UnlockBits(bitmap);
-#else
-                            return 0;
-                        }
-                    )
-#endif
-                )
-#if ParallelSnap
-                ).ConfigureAwait(false)
-#else
-                    .ToArray()
-#endif
-                ;
+                        Task.Run(() => input.Snap(bitmap, timeout)))).ConfigureAwait(false);
             }
             finally
             {
