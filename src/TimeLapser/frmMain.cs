@@ -16,13 +16,15 @@ namespace kasthack.TimeLapser
     public partial class FrmMain : Form
     {
         private readonly Recorder recorder = new();
-        private RecordSettings settings;
         private readonly ScreenInfo formScreenInfo;
+        private RecordSettings settings;
+        private bool isRunningOnLegacyOS;
 
         public FrmMain()
         {
             this.InitializeComponent();
             this.ApplyLocale();
+            this.ConfigureLegacy();
             this.trayIcon.Icon = this.Icon = Resources.icon;
             this.formScreenInfo = new ScreenInfo { Id = 31337, Name = Locale.Locale.BehindThisWindowDragAndResizeToTune };
         }
@@ -99,11 +101,7 @@ namespace kasthack.TimeLapser
             this.cmbScreen.DataSource = screenInfos;
             this.cmbFormat.SelectedIndex = 0;
 
-            // enable legacy recorder for win7 & earlier
-            if (Environment.OSVersion.Version <= new Version(6, 1))
-            {
-                this.cmbSnapper.SelectedIndex = 1;
-            }
+            this.cmbSnapper.SelectedItem = this.isRunningOnLegacyOS ? SnapperType.Legacy : SnapperType.DirectX;
 
             this.cmbScreen.SelectedIndex = this.cmbScreen.Items.Count - 1;
             this.txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
@@ -116,18 +114,33 @@ namespace kasthack.TimeLapser
 #endif
         }
 
+        private void ConfigureLegacy()
+        {
+            // enable legacy recorder for win7 & earlier
+            var win7Version = new Version(6, 1);
+            var currentVersion = Environment.OSVersion.Version;
+            currentVersion = new Version(currentVersion.Major, currentVersion.Minor);
+            this.isRunningOnLegacyOS = currentVersion <= win7Version;
+        }
+
         private void BrowseDirectoryClicked(object sender, EventArgs e) => this.txtPath.Text = this.fbdSave.ShowDialog() == DialogResult.OK ? this.fbdSave.SelectedPath : this.txtPath.Text;
 
         private void SplitCheckChanged(object sender, EventArgs e) => this.nudSplitInterval.Enabled = this.chkSplit.Checked;
 
-        private void StatusIconClicked(object sender, EventArgs e)
-        {
-            this.ShowInTaskbar = this.Visible = !(this.trayIcon.Visible = false);
-            this.Show();
-            this.WindowState = FormWindowState.Normal;
-        }
+        private void StatusIconClicked(object sender, EventArgs e) => this.WindowState = FormWindowState.Normal;
 
-        private void HandleSizeChanged(object sender, EventArgs e) => this.ShowInTaskbar = this.WindowState == FormWindowState.Minimized ? this.Visible = !(this.trayIcon.Visible = true) : this.ShowInTaskbar;
+        private void HandleSizeChanged(object sender, EventArgs e)
+        {
+            var isMinimized = this.WindowState == FormWindowState.Minimized;
+            this.ShowInTaskbar = !(this.trayIcon.Visible = isMinimized);
+
+            //windows 7 selection bug
+            if (!isMinimized && this.isRunningOnLegacyOS && this.txtPath.SelectionLength == 0)
+            {
+                this.txtPath.SelectionStart = 0;
+                this.txtPath.SelectionLength = 0;
+            }
+        }
 
         private void RealtimeCheckChanged(object sender, EventArgs e) => this.nudFreq.Enabled = !this.chkRealtime.Checked;
 

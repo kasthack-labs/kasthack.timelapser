@@ -42,6 +42,13 @@ namespace kasthack.TimeLapser
             this.stopWaiter.Wait();
         }
 
+        private static ISnapper GetSnapper(RecordSettings settings) => settings.SnapperType switch
+        {
+            SnapperType.DirectX => new DXSnapper(),
+            SnapperType.Legacy => new SDGSnapper(),
+            _ => throw new ArgumentOutOfRangeException($"Invalid snapper: {settings.SnapperType}"),
+        };
+
         private async Task StartInternal(RecordSettings settings)
         {
             try
@@ -232,13 +239,6 @@ namespace kasthack.TimeLapser
                 this.stopWaiter.Set();
             }
         }
-
-        private static ISnapper GetSnapper(RecordSettings settings) => settings.SnapperType switch
-        {
-            SnapperType.DirectX => new DXSnapper(),
-            SnapperType.Legacy => new SDGSnapper(),
-            _ => throw new ArgumentOutOfRangeException($"Invalid snapper: {settings.SnapperType}"),
-        };
 
         private void PreprocessFrame(Bitmap bmp, RecordSettings settings)
         {

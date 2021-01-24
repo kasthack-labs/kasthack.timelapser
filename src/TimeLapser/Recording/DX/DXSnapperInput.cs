@@ -70,6 +70,18 @@
                 this.height = intersection.Height;
             }
 
+            /// <inheritdoc/>
+            public override void Dispose()
+            {
+                this.adapter?.Dispose();
+                this.device?.Dispose();
+                this.output?.Dispose();
+                this.output1?.Dispose();
+                this.screenTexture?.Dispose();
+                this.duplicatedOutput?.Dispose();
+                base.Dispose();
+            }
+
             internal bool Snap(BitmapData bitmap, int timeout)
             {
                 _ = this.ThrowIfDisposed();
@@ -84,6 +96,7 @@
                         {
                             return false;
                         }
+
                         acquiredFrame = true;
                     }
                     catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
@@ -110,6 +123,8 @@
                     }
                 }
             }
+
+            private static string FormatRectangle(Rectangle desktopBounds) => $"(x:{desktopBounds.X} y:{desktopBounds.Y} w:{desktopBounds.Width} h:{desktopBounds.Height})";
 
             private unsafe void Render(DataBox databox, BitmapData bitmap)
             {
@@ -158,20 +173,6 @@
                     destPtr = IntPtr.Add(destPtr, bitmap.Stride);
                 }
             }
-
-            /// <inheritdoc/>
-            public override void Dispose()
-            {
-                this.adapter?.Dispose();
-                this.device?.Dispose();
-                this.output?.Dispose();
-                this.output1?.Dispose();
-                this.screenTexture?.Dispose();
-                this.duplicatedOutput?.Dispose();
-                base.Dispose();
-            }
-
-            private static string FormatRectangle(Rectangle desktopBounds) => $"(x:{desktopBounds.X} y:{desktopBounds.Y} w:{desktopBounds.Width} h:{desktopBounds.Height})";
         }
     }
 }
