@@ -11,16 +11,11 @@
     <AssetTargetFallback>net462</AssetTargetFallback>
   </PropertyGroup>
   <ItemGroup>
-   <Reference Include="lib/Accord.dll" />
-  <Reference Include="lib/Accord.Video.FFMPEG.dll" />
+    <!-- the linker doesn't see the libs for some reason, so we link them directly -->
+    <Reference Include="lib/Accord.dll" />
+    <Reference Include="lib/Accord.Video.FFMPEG.dll" />
 
-    <!--<PackageReference Include="Accord" Version="3.8.0"/>-->
-    <PackageReference Include="Accord.Video" Version="3.8.0" />
     <PackageReference Include="Accord.Video.FFMPEG" Version="3.8.0" />
-
-
-    <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
-    <PackageReference Include="SharpDX.DXGI" Version="4.2.0" />
   </ItemGroup>
 </Project>
