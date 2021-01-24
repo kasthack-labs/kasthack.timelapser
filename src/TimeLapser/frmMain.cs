@@ -16,9 +16,8 @@ namespace kasthack.TimeLapser
     public partial class FrmMain : Form
     {
         private readonly Recorder recorder = new();
-        private RecordSettings settings;
         private readonly ScreenInfo formScreenInfo;
-
+        private RecordSettings settings;
         public FrmMain()
         {
             this.InitializeComponent();

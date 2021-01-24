@@ -6,6 +6,8 @@
 
     internal interface ISnapper : IDisposable
     {
+        int MaxProcessingThreads { get; }
+
         void SetSource(Rectangle sourceRect);
 
         /*
@@ -13,7 +15,5 @@
          * implementation must dispose it
          */
         Task<Bitmap> Snap(int timeout = 0);
-
-        int MaxProcessingThreads { get; }
     }
 }

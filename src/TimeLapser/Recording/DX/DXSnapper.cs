@@ -37,25 +37,6 @@ namespace kasthack.TimeLapser
             this.renderBitmaps = Enumerable.Range(0, RenderPoolSize).Select(_ => new Bitmap(sourceRect.Width, sourceRect.Height, DestPixelFormat)).ToArray();
         }
 
-        private Tuple<int, int>[] GetCapturedOutputs()
-        {
-            var ret = new List<Tuple<int, int>>(6); // most cases
-            for (var adapterIndex = this.factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
-            {
-                using var adapter = this.factory.GetAdapter1(adapterIndex);
-                for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
-                {
-                    using var output = adapter.GetOutput(outputIndex);
-                    if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(this.sourceRect.Value))
-                    {
-                        ret.Add(new Tuple<int, int>(adapterIndex, outputIndex));
-                    }
-                }
-            }
-
-            return ret.ToArray();
-        }
-
         public async Task<Bitmap> Snap(int timeout = 0)
         {
             this.ThrowIfDisposed();
@@ -128,6 +109,25 @@ namespace kasthack.TimeLapser
         {
             this.DisposeNative();
             base.Dispose();
+        }
+
+        private Tuple<int, int>[] GetCapturedOutputs()
+        {
+            var ret = new List<Tuple<int, int>>(6); // most cases
+            for (var adapterIndex = this.factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
+            {
+                using var adapter = this.factory.GetAdapter1(adapterIndex);
+                for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
+                {
+                    using var output = adapter.GetOutput(outputIndex);
+                    if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(this.sourceRect.Value))
+                    {
+                        ret.Add(new Tuple<int, int>(adapterIndex, outputIndex));
+                    }
+                }
+            }
+
+            return ret.ToArray();
         }
 
         private void DisposeNative()
