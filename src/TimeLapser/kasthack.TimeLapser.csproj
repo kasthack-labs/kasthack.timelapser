@@ -6,10 +6,13 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>SA1300;SA1600;SA1591;CS1591;SA1633;SA1601</NoWarn>
+    <!--<PublishSingleFile>true</PublishSingleFile>-->
 
     <PlatformTarget>x86</PlatformTarget>
     <AssetTargetFallback>net462</AssetTargetFallback>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0</AssemblyVersion>
+    <FileVersion>1.2.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- the linker doesn't see the libs for some reason, so we link them directly -->
