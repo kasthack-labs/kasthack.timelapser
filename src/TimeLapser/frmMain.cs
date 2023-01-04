@@ -106,16 +106,10 @@ namespace kasthack.TimeLapser
             this.cmbFormat.SelectedIndex = 0;
 
             this.cmbSnapper.SelectedItem = this.isRunningOnLegacyOS ? SnapperType.Legacy : SnapperType.DirectX;
-
-            this.cmbScreen.SelectedIndex = this.cmbScreen.Items.Count - 1;
             this.txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
-//#if TESTING
-//            this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
-//            this.chkSplit.Checked = true;
-//            this.nudSplitInterval.Value = 1;
-//            this.chkRealtime.Checked = true;
-//            this.cmbScreen.SelectedIndex = 1;
-//#endif
+#if TESTING
+            this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
+#endif
         }
 
         private void UpdateScreenInfos()
@@ -133,7 +127,7 @@ namespace kasthack.TimeLapser
             this.screenInfosBinding.DataSource = screenInfos;
 
             // restore selection
-            this.cmbScreen.SelectedIndex = oldSelectedIndex < this.cmbScreen.Items.Count && oldSelectedIndex != -1 ? oldSelectedIndex : this.cmbScreen.Items.Count - 1;
+            this.cmbScreen.SelectedIndex = oldSelectedIndex < this.cmbScreen.Items.Count && oldSelectedIndex != -1 ? oldSelectedIndex : this.cmbScreen.Items.Count - 2;
         }
 
         private void ConfigureLegacy()
