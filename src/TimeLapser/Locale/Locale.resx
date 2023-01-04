@@ -130,16 +130,16 @@
     <value>Elapsed :{0:g}</value>
   </data>
   <data name="Format" xml:space="preserve">
-    <value>Format</value>
+    <value>Video format</value>
   </data>
   <data name="Framerate" xml:space="preserve">
-    <value>Framerate</value>
+    <value>Output framerate</value>
   </data>
   <data name="IntervalMs" xml:space="preserve">
-    <value>Interval(ms)</value>
+    <value>Snapshot interval(ms)</value>
   </data>
   <data name="OutputPath" xml:space="preserve">
-    <value>Output path</value>
+    <value>Output path:</value>
   </data>
   <data name="Pending" xml:space="preserve">
     <value>Pending</value>
@@ -148,13 +148,13 @@
     <value>Timelapser by kasthack</value>
   </data>
   <data name="Realtime" xml:space="preserve">
-    <value>Realtime</value>
+    <value>Record as is</value>
   </data>
   <data name="Recorder" xml:space="preserve">
-    <value>Recorder</value>
+    <value>Recording method</value>
   </data>
   <data name="Screen" xml:space="preserve">
-    <value>Screen</value>
+    <value>Screen to record</value>
   </data>
   <data name="SplitEveryNMinutes" xml:space="preserve">
     <value>Split every N minutes</value>

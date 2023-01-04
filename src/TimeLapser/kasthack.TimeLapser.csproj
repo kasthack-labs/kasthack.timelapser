@@ -2,13 +2,14 @@
   <PropertyGroup>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>SA1300;SA1600;SA1591;CS1591;SA1633;SA1601</NoWarn>
 
     <PlatformTarget>x86</PlatformTarget>
     <AssetTargetFallback>net462</AssetTargetFallback>
+    <Version>1.1.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- the linker doesn't see the libs for some reason, so we link them directly -->

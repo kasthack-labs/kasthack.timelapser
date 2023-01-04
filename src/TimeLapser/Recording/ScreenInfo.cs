@@ -53,7 +53,7 @@
 
         public static Rectangle NormalizeRectangle(Rectangle source) => new(source.Location, new Size(source.Size.Width - (source.Size.Width % 2), source.Size.Height - (source.Size.Height % 2)));
 
-        public override string ToString() => $"{this.Name}({this.Id})";
+        public override string ToString() => $"{this.Name}({this.Id}) ({this.Rect.Width}x{this.Rect.Height})";
 
         private void Update<T>(T value, ref T field, [CallerMemberName] string property = null)
         {

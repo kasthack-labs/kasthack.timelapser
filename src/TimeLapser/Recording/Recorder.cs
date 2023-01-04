@@ -2,14 +2,11 @@
 namespace kasthack.TimeLapser
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
     using System.IO;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Windows.Forms;
 
     using Accord.Video.FFMPEG;
 
@@ -106,7 +103,7 @@ namespace kasthack.TimeLapser
 
                     for (var i = 0L; (splitInterval == null || i < splitInterval) && this.Recording; i++)
                     {
-                        Task tsk = null;
+                        Task delayBetweenFramesTask = null;
                         Bitmap currentFrame = null;
                         try
                         {
@@ -122,7 +119,7 @@ namespace kasthack.TimeLapser
                                 continue;
                             }
 
-                            tsk = Task.Delay(inputSnapInterval - quant);
+                            delayBetweenFramesTask = Task.Delay(inputSnapInterval - quant);
                             /*
                                 * these bitmaps are actually the same object or null -> we only have to dispose it once
                                 */
@@ -194,15 +191,15 @@ namespace kasthack.TimeLapser
                             // only relevant for realtime+ recordings
                             var recentFps = framesSinceLastSync * second / elapsedSinceLastSync;
                             var recentFpsDelta = recentFps - inputExpectedFps;
-                            Console.WriteLine($"{framesSinceLastSync} frames({emptyFramesSinceLastSync} empty, {crashedFramesSinceLastSync} crashed, {slowFramewsSinceLastSync} slow) in last {elapsedSinceLastSync:F} ms ({recentFps:F} fps). Total FPS: {framesWritten * second / elapsedNow:F}. Expected: {inputExpectedFps:F}");
+                            //Console.WriteLine($"{framesSinceLastSync} frames({emptyFramesSinceLastSync} empty, {crashedFramesSinceLastSync} crashed, {slowFramewsSinceLastSync} slow) in last {elapsedSinceLastSync:F} ms ({recentFps:F} fps). Total FPS: {framesWritten * second / elapsedNow:F}. Expected: {inputExpectedFps:F}");
 #if !PERF
                             // faster than expected && at least one actual frame
                             if (recentFpsDelta > 1)
                             {
-                                tsk.Wait(); // wait for the current loop
+                                await delayBetweenFramesTask.ConfigureAwait(false); // wait for the current loop
 
                                 // Debug.WriteLine($"[FUCK] Slow down, fella: {recentFpsDelta} frames");
-                                Task.Delay((int)((inputSnapInterval * recentFpsDelta) - quant)).Wait();
+                                await Task.Delay((int)((inputSnapInterval * recentFpsDelta) - quant)).ConfigureAwait(false);
                             }
                             else if (recentFpsDelta < -1)
                             {
@@ -219,7 +216,10 @@ namespace kasthack.TimeLapser
                             slowFramewsSinceLastSync = 0;
                         }
 #if !PERF
-                        tsk?.Wait();
+                        if (delayBetweenFramesTask is not null)
+                        {
+                            await delayBetweenFramesTask.ConfigureAwait(false);
+                        }
 #endif
                     }
 

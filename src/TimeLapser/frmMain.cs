@@ -5,8 +5,12 @@
 namespace kasthack.TimeLapser
 {
     using System;
+    using System.Collections.ObjectModel;
+    using System.Diagnostics;
     using System.Drawing;
     using System.IO;
+    using System.Linq;
+    using System.Reflection;
     using System.Windows.Forms;
 
     using Accord.Video.FFMPEG;
@@ -15,6 +19,7 @@ namespace kasthack.TimeLapser
 
     public partial class FrmMain : Form
     {
+        private readonly BindingSource screenInfosBinding;
         private readonly Recorder recorder = new();
         private readonly ScreenInfo formScreenInfo;
         private RecordSettings settings;
@@ -27,11 +32,13 @@ namespace kasthack.TimeLapser
             this.ConfigureLegacy();
             this.trayIcon.Icon = this.Icon = Resources.icon;
             this.formScreenInfo = new ScreenInfo { Id = 31337, Name = Locale.Locale.BehindThisWindowDragAndResizeToTune };
+            this.screenInfosBinding = new BindingSource();
+            this.cmbScreen.DataSource = this.screenInfosBinding;
         }
 
         private void ApplyLocale()
         {
-            this.Text = Locale.Locale.ProgramName;
+            this.Text = Locale.Locale.ProgramName + " v." + new Version(Application.ProductVersion).ToString();
             this.lblFreq.Text = Locale.Locale.IntervalMs;
             this.lblPath.Text = Locale.Locale.OutputPath;
             this.chkRealtime.Text = Locale.Locale.Realtime;
@@ -92,26 +99,41 @@ namespace kasthack.TimeLapser
 
         private void FormLoad(object sender, EventArgs e)
         {
-            var screenInfos = ScreenInfo.GetScreenInfos();
-            this.UpdateFormScreenInfo();
-            screenInfos.Add(this.formScreenInfo);
+            this.UpdateScreenInfos();
 
             this.cmbSnapper.DataSource = Enum.GetValues(typeof(SnapperType)) as SnapperType[];
             this.cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
-            this.cmbScreen.DataSource = screenInfos;
             this.cmbFormat.SelectedIndex = 0;
 
             this.cmbSnapper.SelectedItem = this.isRunningOnLegacyOS ? SnapperType.Legacy : SnapperType.DirectX;
 
             this.cmbScreen.SelectedIndex = this.cmbScreen.Items.Count - 1;
             this.txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
-#if TESTING
-            this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
-            this.chkSplit.Checked = true;
-            this.nudSplitInterval.Value = 1;
-            this.chkRealtime.Checked = true;
-            this.cmbScreen.SelectedIndex = 1;
-#endif
+//#if TESTING
+//            this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
+//            this.chkSplit.Checked = true;
+//            this.nudSplitInterval.Value = 1;
+//            this.chkRealtime.Checked = true;
+//            this.cmbScreen.SelectedIndex = 1;
+//#endif
+        }
+
+        private void UpdateScreenInfos()
+        {
+            // save selected option
+            var oldSelectedIndex = this.cmbScreen.SelectedIndex;
+
+            // refresh screens
+            var screenInfos = ScreenInfo.GetScreenInfos();
+            screenInfos.Add(this.formScreenInfo);
+            this.UpdateFormScreenInfo();
+
+            // push to UI
+            this.screenInfosBinding.Clear();
+            this.screenInfosBinding.DataSource = screenInfos;
+
+            // restore selection
+            this.cmbScreen.SelectedIndex = oldSelectedIndex < this.cmbScreen.Items.Count && oldSelectedIndex != -1 ? oldSelectedIndex : this.cmbScreen.Items.Count - 1;
         }
 
         private void ConfigureLegacy()
@@ -149,5 +171,25 @@ namespace kasthack.TimeLapser
         private void FrmMain_Move(object sender, EventArgs e) => this.UpdateFormScreenInfo();
 
         private void UpdateFormScreenInfo() => this.formScreenInfo.Rect = ScreenInfo.NormalizeRectangle(new Rectangle(this.Location, this.Size));
+
+        private void btnRefresh_Click(object sender, EventArgs e) => this.UpdateScreenInfos();
+
+        private void FrmMain_ResizeBegin(object sender, EventArgs e) => this.UpdateFormScreenInfo();
+
+        private void btnBrowse_Click(object sender, EventArgs e)
+        {
+            var path = this.txtPath.Text;
+            if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+            {
+                new Process()
+                {
+                    StartInfo =
+                    {
+                        UseShellExecute = true,
+                        FileName = path,
+                    },
+                }.Start();
+            }
+        }
     }
 }
