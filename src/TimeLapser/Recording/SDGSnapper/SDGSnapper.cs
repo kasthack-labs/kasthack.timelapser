@@ -2,6 +2,8 @@
 {
     using System;
     using System.Drawing;
+    using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     /*
@@ -9,11 +11,13 @@
      */
     internal class SDGSnapper : DisposableBase, ISnapper
     {
-        private Bitmap renderedFrame;
-        private Graphics graphics;
+        private const int RenderPoolSize = 3;
+        private int currentRenderIndex = 0;
+        private Bitmap[] renderedFrames;
+        private Graphics[] canvases;
         private Rectangle? sourceRectangle;
 
-        public int MaxProcessingThreads => 1;
+        public int MaxProcessingThreads => RenderPoolSize;
 
         public void SetSource(Rectangle sourceRect)
         {
@@ -21,8 +25,8 @@
             this.DisposeNative();
             this.sourceRectangle = sourceRect;
 
-            this.renderedFrame = new Bitmap(sourceRect.Width, sourceRect.Height);
-            this.graphics = Graphics.FromImage(this.renderedFrame);
+            this.renderedFrames = Enumerable.Range(0, RenderPoolSize).Select(_ => new Bitmap(sourceRect.Width, sourceRect.Height)).ToArray();
+            this.canvases = this.renderedFrames.Select(renderedFrame => Graphics.FromImage(renderedFrame)).ToArray();
         }
 
         public Task<Bitmap> Snap(int interval = 0)
@@ -33,10 +37,14 @@
                 throw new InvalidOperationException("You have to specify source");
             }
 
+            var currenRenderIndex = Interlocked.Increment(ref this.currentRenderIndex);
+            var graphics = this.canvases[currenRenderIndex];
+            var renderedFrame = this.renderedFrames[currenRenderIndex];
+
             var src = this.sourceRectangle.Value;
-            this.graphics.CopyFromScreen(src.X, src.Y, 0, 0, this.renderedFrame.Size);
-            this.graphics.Flush();
-            return Task.FromResult(this.renderedFrame); // ok, that's a bad idea but we can't allocate fuckton of memory for each frame
+            graphics.CopyFromScreen(src.X, src.Y, 0, 0, renderedFrame.Size);
+            graphics.Flush();
+            return Task.FromResult(renderedFrame); // ok, that's a bad idea but we can't allocate a ton of memory for each frame
         }
 
         public override void Dispose()
@@ -47,11 +55,29 @@
 
         private void DisposeNative()
         {
-            this.graphics?.Dispose();
-            this.renderedFrame?.Dispose();
             this.sourceRectangle = null;
-            this.graphics = null;
-            this.renderedFrame = null;
+
+            if (this.canvases != null)
+            {
+                for (var i = 0; i < this.canvases.Length; i++)
+                {
+                    this.canvases[i]?.Dispose();
+                    this.canvases[i] = null;
+                }
+
+                this.canvases = null;
+            }
+
+            if (this.renderedFrames != null)
+            {
+                for (var i = 0; i < this.renderedFrames.Length; i++)
+                {
+                    this.renderedFrames[i]?.Dispose();
+                    this.renderedFrames[i] = null;
+                }
+
+                this.renderedFrames = null;
+            }
         }
     }
 }

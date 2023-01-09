@@ -5,12 +5,9 @@
 namespace kasthack.TimeLapser
 {
     using System;
-    using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.Drawing;
     using System.IO;
-    using System.Linq;
-    using System.Reflection;
     using System.Windows.Forms;
 
     using Accord.Video.FFMPEG;
@@ -150,7 +147,7 @@ namespace kasthack.TimeLapser
             var isMinimized = this.WindowState == FormWindowState.Minimized;
             this.ShowInTaskbar = !(this.trayIcon.Visible = isMinimized);
 
-            //windows 7 selection bug
+            // windows 7 selection bug
             if (!isMinimized && this.isRunningOnLegacyOS && this.txtPath.SelectionLength == 0)
             {
                 this.txtPath.SelectionStart = 0;
@@ -175,7 +172,7 @@ namespace kasthack.TimeLapser
             var path = this.txtPath.Text;
             if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
             {
-                new Process()
+                _ = new Process()
                 {
                     StartInfo =
                     {
