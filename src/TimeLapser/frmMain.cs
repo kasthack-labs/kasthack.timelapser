@@ -13,24 +13,33 @@ namespace kasthack.TimeLapser
     using Accord.Video.FFMPEG;
 
     using kasthack.TimeLapser.Properties;
+    using kasthack.TimeLapser.Recording.Metadata;
+    using kasthack.TimeLapser.Recording.Models;
+    using kasthack.TimeLapser.Recording.Recorder;
 
     public partial class FrmMain : Form
     {
+        private readonly IScreenInfoProvider screenInfoProvider;
+
         private readonly BindingSource screenInfosBinding;
-        private readonly Recorder recorder = new();
+        private readonly IRecorder recorder;
         private readonly ScreenInfo formScreenInfo;
         private RecordSettings settings;
         private bool isRunningOnLegacyOS;
 
-        public FrmMain()
+        public FrmMain(IRecorder recorder, IScreenInfoProvider screenInfoProvider)
         {
+            this.recorder = recorder;
+
             this.InitializeComponent();
             this.ApplyLocale();
-            this.ConfigureLegacy();
+            this.DetectOlderOs();
+
             this.trayIcon.Icon = this.Icon = Resources.icon;
             this.formScreenInfo = new ScreenInfo { Id = 31337, Name = Locale.Locale.BehindThisWindowDragAndResizeToTune };
             this.screenInfosBinding = new BindingSource();
             this.cmbScreen.DataSource = this.screenInfosBinding;
+            this.screenInfoProvider = screenInfoProvider;
         }
 
         private void ApplyLocale()
@@ -62,7 +71,7 @@ namespace kasthack.TimeLapser
                 this.SetRecordingState(true);
                 this.settings = new RecordSettings(
                     outputPath: this.txtPath.Text,
-                    captureRectangle: ((ScreenInfo)this.cmbScreen.SelectedItem).Rect,
+                    captureRectangle: ((ScreenInfo)this.cmbScreen.SelectedItem).Rectangle,
                     fps: (int)this.nudFramerate.Value,
                     interval: (int)this.nudFreq.Value,
                     codec: (VideoCodec)this.cmbFormat.SelectedItem,
@@ -115,7 +124,7 @@ namespace kasthack.TimeLapser
             var oldSelectedIndex = this.cmbScreen.SelectedIndex;
 
             // refresh screens
-            var screenInfos = ScreenInfo.GetScreenInfos();
+            var screenInfos = this.screenInfoProvider.GetScreenInfos();
             screenInfos.Add(this.formScreenInfo);
             this.UpdateFormScreenInfo();
 
@@ -127,7 +136,7 @@ namespace kasthack.TimeLapser
             this.cmbScreen.SelectedIndex = oldSelectedIndex < this.cmbScreen.Items.Count && oldSelectedIndex != -1 ? oldSelectedIndex : this.cmbScreen.Items.Count - 2;
         }
 
-        private void ConfigureLegacy()
+        private void DetectOlderOs()
         {
             // enable legacy recorder for win7 & earlier
             var win7Version = new Version(6, 1);
@@ -161,7 +170,7 @@ namespace kasthack.TimeLapser
 
         private void FrmMain_Move(object sender, EventArgs e) => this.UpdateFormScreenInfo();
 
-        private void UpdateFormScreenInfo() => this.formScreenInfo.Rect = ScreenInfo.NormalizeRectangle(new Rectangle(this.Location, this.Size));
+        private void UpdateFormScreenInfo() => this.formScreenInfo.Rectangle = new Rectangle(this.Location, this.Size);
 
         private void btnRefresh_Click(object sender, EventArgs e) => this.UpdateScreenInfos();
 

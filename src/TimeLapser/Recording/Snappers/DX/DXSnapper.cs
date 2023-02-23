@@ -8,6 +8,10 @@ namespace kasthack.TimeLapser
     using System.Drawing.Imaging;
     using System.Linq;
     using System.Threading.Tasks;
+
+    using kasthack.TimeLapser.Recording.Snappers;
+    using kasthack.TimeLapser.Recording.Snappers.DX;
+
     using SharpDX.DXGI;
 
     internal partial class DXSnapper : DisposableBase, ISnapper

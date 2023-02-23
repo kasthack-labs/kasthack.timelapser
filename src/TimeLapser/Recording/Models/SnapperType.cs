@@ -1,4 +1,4 @@
-﻿namespace kasthack.TimeLapser
+﻿namespace kasthack.TimeLapser.Recording.Models
 {
     public enum SnapperType
     {

@@ -4,6 +4,8 @@
     using System.Drawing;
     using System.Drawing.Imaging;
 
+    using kasthack.TimeLapser.Recording.Snappers.DX;
+
     using SharpDX;
     using SharpDX.Direct3D11;
     using SharpDX.DXGI;

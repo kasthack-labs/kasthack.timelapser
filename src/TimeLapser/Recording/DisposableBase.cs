@@ -4,14 +4,14 @@
 
     public abstract class DisposableBase : IDisposable
     {
-        private bool disposed = false;
+        protected bool Disposed { get; private set; }
 
         public virtual void Dispose()
         {
             GC.SuppressFinalize(this);
-            this.disposed = true;
+            this.Disposed = true;
         }
 
-        protected bool ThrowIfDisposed() => this.disposed ? throw new ObjectDisposedException(this.GetType().Name) : true;
+        protected bool ThrowIfDisposed() => this.Disposed ? throw new ObjectDisposedException(this.GetType().Name) : true;
     }
 }

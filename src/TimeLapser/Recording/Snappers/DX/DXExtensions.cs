@@ -1,6 +1,7 @@
-﻿namespace kasthack.TimeLapser
+﻿namespace kasthack.TimeLapser.Recording.Snappers.DX
 {
     using System.Drawing;
+
     using SharpDX.Mathematics.Interop;
 
     internal static class DXExtensions
