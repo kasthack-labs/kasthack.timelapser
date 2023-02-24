@@ -11,13 +11,13 @@
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             _ = Task.Run(() => this.DoWork());
         }
 
         private async Task DoWork()
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -27,7 +27,7 @@
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             Application.Exit();
         }
     }

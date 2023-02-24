@@ -7,6 +7,7 @@
 
     using Autofac.Extensions.DependencyInjection;
 
+    using kasthack.TimeLapser.Recording.Encoding;
     using kasthack.TimeLapser.Recording.Metadata;
     using kasthack.TimeLapser.Recording.Recorder;
     using kasthack.TimeLapser.Recording.Snappers.Factory;
@@ -39,16 +40,17 @@
                         .Enrich.FromLogContext())
 
                 .Build()
-                .RunAsync();
+                .RunAsync().ConfigureAwait(false);
         }
 
         private static IServiceCollection ConfigureServices(IServiceCollection services) => services
                             .AddTransient<IScreenInfoProvider, ScreenInfoProvider>()
-                            .AddTransient<IRecorder, Recorder>()
+                            .AddTransient<IRecorder, ChannelRecorder>()
                             .AddTransient<FrmMain>()
                             .AddTransient<DXSnapper>()
                             .AddTransient<SDGSnapper>()
                             .AddTransient<ISnapperFactory, SnapperFactory>()
+                            .AddTransient<IOutputStreamProvider, OutputStreamProvider>()
                             .AddHostedService<ApplicationService>();
     }
 }

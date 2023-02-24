@@ -5,12 +5,10 @@ namespace kasthack.TimeLapser.Recording.Recorder
     using System;
     using System.Diagnostics;
     using System.Drawing;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
 
-    using Accord.Video.FFMPEG;
-
+    using kasthack.TimeLapser.Recording.Encoding;
     using kasthack.TimeLapser.Recording.Models;
     using kasthack.TimeLapser.Recording.Snappers.Factory;
 
@@ -18,8 +16,10 @@ namespace kasthack.TimeLapser.Recording.Recorder
 
     using Timer = System.Timers.Timer;
 
+    // legacy recorder. Overcomplicated and buggy
     public record Recorder(
         ISnapperFactory SnapperFactory,
+        IOutputStreamProvider OutputStreamProvider,
         ILogger<Recorder> Logger) : IRecorder
     {
         private const double Second = 1000;
@@ -63,64 +63,6 @@ namespace kasthack.TimeLapser.Recording.Recorder
                 this.Logger.LogError(ex, "Failed to increase thread priority");
             }
         }
-
-        private VideoFileWriter GetOutputStream(RecordSettings settings)
-        {
-            var outputFileName = $"timelapser-capture-{DateTimeOffset.Now:yyyy-MM-dd_HH-mm}.avi";
-            var outfile = Path.Combine(settings.OutputPath, outputFileName);
-
-            this.Logger.LogDebug(
-                    "Creating {outputFile}, resolution: {width}x{height}, FPS: {fps}, codec: {codec}, bitrate: {bitrate}",
-                    outfile,
-                    settings.CaptureRectangle.Width,
-                    settings.CaptureRectangle.Height,
-                    settings.Fps,
-                    settings.Codec,
-                    settings.Bitrate);
-
-            if (!Directory.Exists(settings.OutputPath))
-            {
-                try
-                {
-                    Directory.CreateDirectory(settings.OutputPath);
-                    this.Logger.LogInformation("Directory {outputPath} not found, created", settings.OutputPath);
-                }
-                catch (Exception ex)
-                {
-                    this.Logger.LogError(ex, "Failed to create directory {outputPath}", settings.OutputPath);
-                    throw;
-                }
-            }
-
-            try
-            {
-                var outstream = new VideoFileWriter();
-                outstream.Open(outfile, settings.CaptureRectangle.Width, settings.CaptureRectangle.Height, settings.Fps, settings.Codec, settings.Bitrate);
-                this.Logger.LogInformation(
-                    "Created output file {outputFile}, resolution: {width}x{height}, FPS: {fps}, codec: {codec}, bitrate: {bitrate}",
-                    outfile,
-                    settings.CaptureRectangle.Width,
-                    settings.CaptureRectangle.Height,
-                    settings.Fps,
-                    settings.Codec,
-                    settings.Bitrate);
-                return outstream;
-            }
-            catch (Exception ex)
-            {
-                this.Logger.LogError(
-                    ex,
-                    "Failed to create output file {outputFile}, resolution: {width}x{height}, FPS: {fps}, codec: {codec}, bitrate: {bitrate}",
-                    outfile,
-                    settings.CaptureRectangle.Width,
-                    settings.CaptureRectangle.Height,
-                    settings.Fps,
-                    settings.Codec,
-                    settings.Bitrate);
-                throw;
-            }
-        }
-
         private async Task StartInternal(RecordSettings settings)
         {
             try
@@ -145,7 +87,7 @@ namespace kasthack.TimeLapser.Recording.Recorder
 
                         // order matters!
                         using (var snapper = this.SnapperFactory.GetSnapper(settings.SnapperType))
-                        using (var outstream = this.GetOutputStream(settings))
+                        using (var outstream = this.OutputStreamProvider.GetOutputStream(settings))
                         {
                             using var processingSemaphore = new SemaphoreSlim(snapper.MaxProcessingThreads);
                             using var writeSemaphore = new SemaphoreSlim(1);
@@ -317,6 +259,7 @@ namespace kasthack.TimeLapser.Recording.Recorder
             {
                 using var gr = Graphics.FromImage(bmp);
                 gr.Clear(Color.Black);
+                gr.Flush();
             }
         }
     }

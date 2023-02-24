@@ -16,7 +16,7 @@
      */
     internal class SDGSnapper : DisposableBase, ISnapper
     {
-        private const int RenderPoolSize = 3;
+        private const int RenderPoolSize = 6;
         private readonly ILogger<SDGSnapper> logger;
         private int currentRenderIndex = 0;
         private Bitmap[] renderedFrames;
@@ -57,7 +57,7 @@
 
         public async Task<Bitmap> Snap(int timeout = 0)
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             var stopwatch = Stopwatch.StartNew();
             this.logger.LogTrace("Capturing a screenshot with timeout {timeout}, source rectangle {sourceRectangle}", timeout);
             int currenRenderIndex = -1;

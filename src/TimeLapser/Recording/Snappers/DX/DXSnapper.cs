@@ -18,7 +18,7 @@ namespace kasthack.TimeLapser
 
     internal partial class DXSnapper : DisposableBase, ISnapper
     {
-        public const int RenderPoolSize = 3;
+        public const int RenderPoolSize = 6;
         private const int DestPixelSize = 3;
         private const int SourcePixelSize = sizeof(int);
         private const PixelFormat DestPixelFormat = PixelFormat.Format24bppRgb;
