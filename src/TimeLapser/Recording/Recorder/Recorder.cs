@@ -12,14 +12,15 @@ namespace kasthack.TimeLapser.Recording.Recorder
     using Accord.Video.FFMPEG;
 
     using kasthack.TimeLapser.Recording.Models;
-    using kasthack.TimeLapser.Recording.Snappers;
-    using kasthack.TimeLapser.Recording.Snappers.SDGSnapper;
+    using kasthack.TimeLapser.Recording.Snappers.Factory;
 
     using Microsoft.Extensions.Logging;
 
     using Timer = System.Timers.Timer;
 
-    public record Recorder(ILogger<Recorder> Logger) : IRecorder
+    public record Recorder(
+        ISnapperFactory SnapperFactory,
+        ILogger<Recorder> Logger) : IRecorder
     {
         private const double Second = 1000;
         private const double Minute = Second * 60;
@@ -49,13 +50,6 @@ namespace kasthack.TimeLapser.Recording.Recorder
             this.Recording = false;
             this.stopWaiter.Wait();
         }
-
-        private static ISnapper GetSnapper(RecordSettings settings) => settings.SnapperType switch
-        {
-            SnapperType.DirectX => new DXSnapper(),
-            SnapperType.Legacy => new SDGSnapper(default),
-            _ => throw new ArgumentOutOfRangeException($"Invalid snapper: {settings.SnapperType}"),
-        };
 
         private void TryIncreaseCurrentThreadsPriorityToRealtime()
         {
@@ -93,7 +87,7 @@ namespace kasthack.TimeLapser.Recording.Recorder
                 }
                 catch (Exception ex)
                 {
-                    this.Logger.LogError("Failed to create directory {outputPath}", settings.OutputPath);
+                    this.Logger.LogError(ex, "Failed to create directory {outputPath}", settings.OutputPath);
                     throw;
                 }
             }
@@ -150,7 +144,7 @@ namespace kasthack.TimeLapser.Recording.Recorder
                         this.Logger.LogDebug("Starting new video file");
 
                         // order matters!
-                        using (var snapper = GetSnapper(settings))
+                        using (var snapper = this.SnapperFactory.GetSnapper(settings.SnapperType))
                         using (var outstream = this.GetOutputStream(settings))
                         {
                             using var processingSemaphore = new SemaphoreSlim(snapper.MaxProcessingThreads);
@@ -233,6 +227,7 @@ namespace kasthack.TimeLapser.Recording.Recorder
                                             try
                                             {
                                                 outstream.WriteVideoFrame(currentFrame);
+                                                this.Logger.LogTrace("Wrote frame to the output file");
                                             }
                                             finally
                                             {
@@ -264,11 +259,14 @@ namespace kasthack.TimeLapser.Recording.Recorder
                                     if (recentFpsDelta > 1)
                                     {
                                         await delayBetweenFramesTask.ConfigureAwait(false); // wait for the current loop
-                                        await Task.Delay((int)((inputSnapIntervalMilliseconds * recentFpsDelta) - MinimumInterval)).ConfigureAwait(false);
+                                        var delay = (int)((inputSnapIntervalMilliseconds * recentFpsDelta) - MinimumInterval);
+                                        await Task.Delay(delay).ConfigureAwait(false);
+                                        this.Logger.LogInformation("Speeding, waiting for time to catch up for {delay} ms", delay);
                                     }
                                     else if (recentFpsDelta < -1)
                                     {
                                         dropNextNFrames = -(int)recentFpsDelta;
+                                        this.Logger.LogInformation("Lagging behind, skipping next {frames} frames", dropNextNFrames);
                                     }
 #endif
                                     lastSyncFrames = framesWritten;

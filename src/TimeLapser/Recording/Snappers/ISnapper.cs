@@ -4,7 +4,7 @@
     using System.Drawing;
     using System.Threading.Tasks;
 
-    internal interface ISnapper : IDisposable
+    public interface ISnapper : IDisposable
     {
         /// <summary>
         /// Returns maximum number of threads to process <see cref="Snap">Snap</see> output. Currentlty used to indicate bitmap pool size.

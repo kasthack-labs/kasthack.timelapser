@@ -127,6 +127,8 @@
 
                 this.renderedFrames = null;
             }
+
+            this.logger.LogDebug("Disposed snapper resources, disposing = {disposing}", disposing);
         }
     }
 }

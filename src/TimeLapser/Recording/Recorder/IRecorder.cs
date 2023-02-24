@@ -2,8 +2,6 @@
 
 namespace kasthack.TimeLapser.Recording.Recorder;
 
-using System;
-
 using kasthack.TimeLapser.Recording.Models;
 
 public interface IRecorder

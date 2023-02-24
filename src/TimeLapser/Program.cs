@@ -1,22 +1,22 @@
 ﻿namespace kasthack.TimeLapser
 {
     using System;
-    using System.Diagnostics.Metrics;
     using System.IO;
     using System.Reflection;
     using System.Threading.Tasks;
-    using System.Transactions;
 
     using Autofac.Extensions.DependencyInjection;
+
     using kasthack.TimeLapser.Recording.Metadata;
     using kasthack.TimeLapser.Recording.Recorder;
+    using kasthack.TimeLapser.Recording.Snappers.Factory;
+    using kasthack.TimeLapser.Recording.Snappers.SDGSnapper;
 
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
     using Serilog;
-    using Serilog.Events;
 
     internal static class Program
     {
@@ -46,6 +46,9 @@
                             .AddTransient<IScreenInfoProvider, ScreenInfoProvider>()
                             .AddTransient<IRecorder, Recorder>()
                             .AddTransient<FrmMain>()
+                            .AddTransient<DXSnapper>()
+                            .AddTransient<SDGSnapper>()
+                            .AddTransient<ISnapperFactory, SnapperFactory>()
                             .AddHostedService<ApplicationService>();
     }
 }

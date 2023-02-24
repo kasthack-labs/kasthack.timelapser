@@ -6,6 +6,8 @@
 
     using kasthack.TimeLapser.Recording.Snappers.DX;
 
+    using Microsoft.Extensions.Logging;
+
     using SharpDX;
     using SharpDX.Direct3D11;
     using SharpDX.DXGI;
@@ -14,6 +16,8 @@
     {
         private class DXSnapperInput : DisposableBase, IDisposable
         {
+            private readonly ILogger logger;
+
             private readonly int destXOffset;
             private readonly int destYOffset;
             private readonly int sourceXOffset;
@@ -21,16 +25,20 @@
             private readonly int height;
             private readonly int width;
 
-            private readonly Adapter1 adapter;
-            private readonly Output1 output1;
-            private readonly Output output;
-            private readonly Texture2DDescription textureDescription;
-            private readonly Texture2D screenTexture;
-            private readonly SharpDX.Direct3D11.Device device;
-            private readonly OutputDuplication duplicatedOutput;
+            private Adapter1 adapter;
+            private Output1 output1;
+            private Output output;
+            private Texture2DDescription textureDescription;
+            private Texture2D screenTexture;
+            private SharpDX.Direct3D11.Device device;
+            private OutputDuplication duplicatedOutput;
 
-            public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle)
+            private string AdapterDescription => $"{this.output.Description.DeviceName}({this.width}x{this.height} @ {this.sourceXOffset}x{this.sourceYOffset})";
+
+            public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle, ILogger logger)
             {
+                this.logger = logger;
+                this.logger.LogDebug("Creating DX input for {adapter} using capture rectangle {sourceRectangle}", adapterIndex, captureRectangle);
                 this.adapter = factory.GetAdapter1(adapterIndex);
                 this.device = new SharpDX.Direct3D11.Device(this.adapter);
                 this.output = this.adapter.GetOutput(outputIndex);
@@ -70,22 +78,34 @@
                 this.sourceYOffset = intersection.Top - outputBounds.Top;
                 this.width = intersection.Width;
                 this.height = intersection.Height;
+                this.logger.LogDebug("Created DX input for {adapter} using capture rectangle {sourceRectangle}", adapterIndex, captureRectangle);
             }
 
             /// <inheritdoc/>
             public override void Dispose()
             {
+                this.logger.LogDebug("Disposing DX input");
                 this.adapter?.Dispose();
                 this.device?.Dispose();
                 this.output?.Dispose();
                 this.output1?.Dispose();
                 this.screenTexture?.Dispose();
                 this.duplicatedOutput?.Dispose();
+
+                this.adapter = null;
+                this.device = null;
+                this.output = null;
+                this.output1 = null;
+                this.screenTexture = null;
+                this.duplicatedOutput = null;
+                GC.SuppressFinalize(this);
+
                 base.Dispose();
             }
 
             internal bool Snap(BitmapData bitmap, int timeout)
             {
+                this.logger.LogTrace("Snapping data into a bitmap using timeout {timeout} for input {input}", timeout, this.AdapterDescription);
                 _ = this.ThrowIfDisposed();
                 SharpDX.DXGI.Resource screenResource = null;
                 var acquiredFrame = false;
@@ -96,24 +116,35 @@
                         var result = this.duplicatedOutput.TryAcquireNextFrame(timeout, out var dfi, out screenResource);
                         if (!result.Success)
                         {
+                            this.logger.LogWarning("Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
                             return false;
                         }
 
+                        this.logger.LogTrace("Acquired duplicated output frame for input {input}", this.AdapterDescription);
                         acquiredFrame = true;
                     }
                     catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
                     {
+                        this.logger.LogWarning(e, "Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
                         return false;
                     }
 
+                    this.logger.LogTrace("Copying duplicated output into texture using input {input}", this.AdapterDescription);
                     using (var queryInterface = screenResource.QueryInterface<SharpDX.Direct3D11.Resource>())
                     {
                         this.device.ImmediateContext.CopyResource(queryInterface, this.screenTexture);
                     }
 
+                    this.logger.LogTrace("Copied duplicated output into texture using input {input}", this.AdapterDescription);
+
                     var databox = this.device.ImmediateContext.MapSubresource(this.screenTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
                     this.Render(databox, bitmap);
                     return true;
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Failed to capture frame for input {input}", this.AdapterDescription);
+                    throw;
                 }
                 finally
                 {
@@ -130,6 +161,7 @@
 
             private unsafe void Render(DataBox databox, BitmapData bitmap)
             {
+                this.logger.LogTrace("Rendering databox into a bitmap for {input}", this.AdapterDescription);
                 var sourcePtr = IntPtr.Add(databox.DataPointer, (this.sourceXOffset * SourcePixelSize) + (this.sourceYOffset * databox.RowPitch));
                 var destPtr = IntPtr.Add(bitmap.Scan0, (this.destXOffset * DestPixelSize) + (this.destYOffset * bitmap.Stride));
                 for (var y = 0; y < this.height; y++)
@@ -174,6 +206,8 @@
                     sourcePtr = IntPtr.Add(sourcePtr, databox.RowPitch);
                     destPtr = IntPtr.Add(destPtr, bitmap.Stride);
                 }
+
+                this.logger.LogTrace("Rendered databox into a bitmap for {input}", this.AdapterDescription);
             }
         }
     }
