@@ -12,10 +12,10 @@ namespace kasthack.TimeLapser
 
     using Accord.Video.FFMPEG;
 
+    using kasthack.TimeLapser.Core.Interfaces;
+    using kasthack.TimeLapser.Core.Model;
+    using kasthack.TimeLapser.Core.Models;
     using kasthack.TimeLapser.Properties;
-    using kasthack.TimeLapser.Recording.Metadata;
-    using kasthack.TimeLapser.Recording.Models;
-    using kasthack.TimeLapser.Recording.Recorder;
 
     public partial class FrmMain : Form
     {

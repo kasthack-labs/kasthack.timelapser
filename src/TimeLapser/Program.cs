@@ -7,11 +7,12 @@
 
     using Autofac.Extensions.DependencyInjection;
 
-    using kasthack.TimeLapser.Recording.Encoding;
-    using kasthack.TimeLapser.Recording.Metadata;
-    using kasthack.TimeLapser.Recording.Recorder;
-    using kasthack.TimeLapser.Recording.Snappers.Factory;
-    using kasthack.TimeLapser.Recording.Snappers.SDGSnapper;
+    using kasthack.TimeLapser.Core.Impl.Encoding;
+    using kasthack.TimeLapser.Core.Impl.Metadata;
+    using kasthack.TimeLapser.Core.Impl.Recorders;
+    using kasthack.TimeLapser.Core.Impl.Snappers.Factory;
+    using kasthack.TimeLapser.Core.Impl.Snappers.SDGSnapper;
+    using kasthack.TimeLapser.Core.Interfaces;
 
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +51,7 @@
                             .AddTransient<DXSnapper>()
                             .AddTransient<SDGSnapper>()
                             .AddTransient<ISnapperFactory, SnapperFactory>()
-                            .AddTransient<IOutputStreamProvider, OutputStreamProvider>()
+                            .AddTransient<IOutputVideoStreamProvider, FfmpegOutputStreamProvider>()
                             .AddHostedService<ApplicationService>();
     }
 }

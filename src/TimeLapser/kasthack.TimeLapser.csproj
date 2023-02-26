@@ -28,6 +28,8 @@
     <Reference Include="lib/Accord.Video.FFMPEG.dll" />
 
     <PackageReference Include="Accord.Video.FFMPEG" Version="3.8.0" />
+
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="7.0.3" />
     <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
 
     <PackageReference Include="Serilog" Version="2.12.0" />
