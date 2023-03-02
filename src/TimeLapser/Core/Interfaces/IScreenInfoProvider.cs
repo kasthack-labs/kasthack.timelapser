@@ -12,5 +12,6 @@ public interface IScreenInfoProvider
     /// <summary>
     /// Get display infos.
     /// </summary>
+    /// <returns>Display infos.</returns>
     IList<ScreenInfo> GetScreenInfos();
 }

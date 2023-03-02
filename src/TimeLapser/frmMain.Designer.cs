@@ -291,7 +291,7 @@
             this.btnRefresh.TabIndex = 19;
             this.btnRefresh.Text = "⟳";
             this.btnRefresh.UseVisualStyleBackColor = true;
-            this.btnRefresh.Click += this.btnRefresh_Click;
+            this.btnRefresh.Click += this.BtnRefresh_Click;
             // 
             // btnBrowse
             // 
@@ -303,7 +303,7 @@
             this.btnBrowse.TabIndex = 20;
             this.btnBrowse.Text = "📁";
             this.btnBrowse.UseVisualStyleBackColor = true;
-            this.btnBrowse.Click += this.btnBrowse_Click;
+            this.btnBrowse.Click += this.BtnBrowse_Click;
             // 
             // FrmMain
             // 

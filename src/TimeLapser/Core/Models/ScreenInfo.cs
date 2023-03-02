@@ -36,7 +36,11 @@
 
         public override string ToString() => $"{this.Name}({this.Id}) ({this.Rectangle.Width}x{this.Rectangle.Height})";
 
-        // width and height must be even for simpler capturing
+        /// <summary>
+        /// width and height must be even for simpler capturing.
+        /// </summary>
+        /// <param name="source">Rectangle to normalize.</param>
+        /// <returns>Normalized rectangle.</returns>
         private static Rectangle NormalizeRectangle(Rectangle source) => new(source.Location, new Size(source.Size.Width & ~1, source.Size.Height & ~1));
 
         private void Update<T>(T value, ref T field, [CallerMemberName] string property = null)

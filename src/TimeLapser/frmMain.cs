@@ -8,6 +8,7 @@ namespace kasthack.TimeLapser
     using System.Diagnostics;
     using System.Drawing;
     using System.IO;
+    using System.Threading.Tasks;
     using System.Windows.Forms;
 
     using Accord.Video.FFMPEG;
@@ -59,7 +60,7 @@ namespace kasthack.TimeLapser
             this.trayIcon.Text = Locale.Locale.ProgramName;
         }
 
-        private void StartRecordingClicked(object sender, EventArgs e)
+        private async void StartRecordingClicked(object sender, EventArgs e)
         {
             if (this.recorder.Recording)
             {
@@ -70,17 +71,23 @@ namespace kasthack.TimeLapser
             {
                 this.SetRecordingState(true);
                 this.settings = new RecordSettings(
-                    outputPath: this.txtPath.Text,
-                    captureRectangle: ((ScreenInfo)this.cmbScreen.SelectedItem).Rectangle,
-                    fps: (int)this.nudFramerate.Value,
-                    interval: (int)this.nudFreq.Value,
-                    codec: (VideoCodec)this.cmbFormat.SelectedItem,
-                    bitrate: (int)this.budBitrate.Value << 20,
-                    splitInterval: this.chkSplit.Checked ? (double?)this.nudSplitInterval.Value : null,
-                    onFrameWritten: (a) => this.BeginInvoke((Action)(() => this.lblTime.Text = string.Format(Locale.Locale.ElapsedFormatStirng, a))),
-                    realtime: this.chkRealtime.Checked,
-                    snapperType: (SnapperType)this.cmbSnapper.SelectedItem);
+                    OutputPath: this.txtPath.Text,
+                    CaptureRectangle: ((ScreenInfo)this.cmbScreen.SelectedItem).Rectangle,
+                    SplitInterval: this.chkSplit.Checked ? (double?)this.nudSplitInterval.Value : null,
+                    Bitrate: (int)this.budBitrate.Value << 20,
+                    Codec: (VideoCodec)this.cmbFormat.SelectedItem,
+                    Interval: (int)this.nudFreq.Value,
+                    Fps: (int)this.nudFramerate.Value,
+                    Realtime: this.chkRealtime.Checked,
+                    SnapperType: (SnapperType)this.cmbSnapper.SelectedItem);
                 this.recorder.Start(this.settings);
+
+                var sw = Stopwatch.StartNew();
+                while (this.recorder.Recording)
+                {
+                    _ = this.BeginInvoke(() => this.lblTime.Text = string.Format(Locale.Locale.ElapsedFormatStirng, sw.Elapsed));
+                    await Task.Delay(100).ConfigureAwait(false);
+                }
             }
         }
 
@@ -111,7 +118,7 @@ namespace kasthack.TimeLapser
             this.cmbFormat.DataSource = Enum.GetValues(typeof(VideoCodec)) as VideoCodec[];
             this.cmbFormat.SelectedIndex = 0;
 
-            this.cmbSnapper.SelectedItem = this.isRunningOnLegacyOS ? SnapperType.Legacy : SnapperType.DirectX;
+            this.cmbSnapper.SelectedItem = this.isRunningOnLegacyOS ? SnapperType.Windows7 : SnapperType.DirectX;
             this.txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
 #if TESTING
             this.txtPath.Text = Path.Combine(this.txtPath.Text, "dbg_scr");
@@ -172,11 +179,11 @@ namespace kasthack.TimeLapser
 
         private void UpdateFormScreenInfo() => this.formScreenInfo.Rectangle = new Rectangle(this.Location, this.Size);
 
-        private void btnRefresh_Click(object sender, EventArgs e) => this.UpdateScreenInfos();
+        private void BtnRefresh_Click(object sender, EventArgs e) => this.UpdateScreenInfos();
 
         private void FrmMain_ResizeBegin(object sender, EventArgs e) => this.UpdateFormScreenInfo();
 
-        private void btnBrowse_Click(object sender, EventArgs e)
+        private void BtnBrowse_Click(object sender, EventArgs e)
         {
             var path = this.txtPath.Text;
             if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))

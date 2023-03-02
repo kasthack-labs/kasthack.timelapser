@@ -16,7 +16,11 @@ using Microsoft.Extensions.Logging;
 /// <param name="Logger">Logger.</param>
 internal record FfmpegOutputStreamProvider(ILogger<FfmpegOutputStreamProvider> Logger) : IOutputVideoStreamProvider
 {
-    // create output file with FFMPEG
+    /// <summary>
+    /// Create output file with FFMPEG.
+    /// </summary>
+    /// <param name="settings">Capture settings.</param>
+    /// <returns>Output video stream.</returns>
     public IOutputVideoStream GetOutputStream(RecordSettings settings)
     {
         var outputFileName = $"timelapser-capture-{DateTimeOffset.Now:yyyy-MM-dd_HH-mm}.avi";
@@ -35,7 +39,7 @@ internal record FfmpegOutputStreamProvider(ILogger<FfmpegOutputStreamProvider> L
         {
             try
             {
-                Directory.CreateDirectory(settings.OutputPath);
+                _ = Directory.CreateDirectory(settings.OutputPath);
                 this.Logger.LogInformation("Directory {outputPath} not found, created", settings.OutputPath);
             }
             catch (Exception ex)

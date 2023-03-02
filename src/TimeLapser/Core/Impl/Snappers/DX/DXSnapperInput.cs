@@ -20,6 +20,8 @@
     {
         private class DXSnapperInput : DisposableBase, IDisposable
         {
+            public static readonly PixelFormat SupportedPixelFormat = PixelFormat.Format24bppRgb;
+
             private readonly ILogger logger;
 
             private readonly int destXOffset;
@@ -36,8 +38,6 @@
             private Texture2D screenTexture;
             private SharpDX.Direct3D11.Device device;
             private OutputDuplication duplicatedOutput;
-
-            private string AdapterDescription => $"{this.output.Description.DeviceName}({this.width}x{this.height} @ {this.sourceXOffset}x{this.sourceYOffset})";
 
             public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle, ILogger logger)
             {
@@ -85,6 +85,8 @@
                 this.logger.LogDebug("Created DX input for {adapter} using capture rectangle {sourceRectangle}", adapterIndex, captureRectangle);
             }
 
+            private string AdapterDescription => $"{this.output.Description.DeviceName}({this.width}x{this.height} @ {this.sourceXOffset}x{this.sourceYOffset})";
+
             /// <inheritdoc/>
             public override void Dispose()
             {
@@ -109,6 +111,15 @@
 
             internal bool Snap(BitmapData bitmap, int timeout)
             {
+                if (bitmap.PixelFormat != SupportedPixelFormat)
+                {
+#pragma warning disable CA2254 // public static readonly enum is effectively constant BUT I don't want it to be a const to avoid baking it in elsewhere
+                    this.logger.LogError($"Rendering is only supported for {SupportedPixelFormat} bitmaps, got {{outputPixelFormat}} instead", bitmap.PixelFormat);
+#pragma warning restore CA2254
+
+                    throw new ArgumentOutOfRangeException(nameof(bitmap), $"Invalid pixel format for rendering: {SupportedPixelFormat} supported, got {bitmap.PixelFormat}");
+                }
+
                 this.logger.LogTrace("Snapping data into a bitmap using timeout {timeout} for input {input}", timeout, this.AdapterDescription);
                 _ = this.ThrowIfDisposed();
                 SharpDX.DXGI.Resource screenResource = null;

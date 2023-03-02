@@ -35,7 +35,7 @@
                 .ConfigureHostConfiguration(configuration => configuration.AddJsonFile(Path.Combine(assemblyDirectory, "appSettings.json")))
                 .UseServiceProviderFactory(new AutofacServiceProviderFactory())
                 .ConfigureServices(services => ConfigureServices(services))
-                .UseSerilog((hostingContext, services, loggerConfiguration) =>
+                .UseSerilog((hostingContext, _, loggerConfiguration) =>
                     loggerConfiguration
                         .ReadFrom.Configuration(hostingContext.Configuration)
                         .Enrich.FromLogContext())

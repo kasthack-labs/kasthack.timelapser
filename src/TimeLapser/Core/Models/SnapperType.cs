@@ -13,6 +13,6 @@
         /// <summary>
         /// System.Drawing snapper.
         /// </summary>
-        Legacy,
+        Windows7,
     }
 }

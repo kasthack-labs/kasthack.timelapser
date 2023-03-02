@@ -1,5 +1,6 @@
 ﻿namespace kasthack.TimeLapser.Core.Impl.Pooling
 {
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.ObjectPool;
 
     /// <summary>
@@ -12,11 +13,9 @@
         /// </summary>
         /// <typeparam name="T">Object type.</typeparam>
         /// <param name="pool">Pool to use.</param>
+        /// <param name="logger">Logger.</param>
         /// <returns>Disposable wrapper.</returns>
-        public static PooledWrapper<T> GetDisposable<T>(this ObjectPool<T> pool)
-            where T : class
-        {
-            return new PooledWrapper<T>(pool.Get(), pool);
-        }
+        public static PooledWrapper<T> GetDisposable<T>(this ObjectPool<T> pool, ILogger logger)
+            where T : class => new(pool.Get(), pool, logger);
     }
 }

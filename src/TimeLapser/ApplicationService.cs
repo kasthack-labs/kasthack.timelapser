@@ -12,13 +12,13 @@
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await Task.CompletedTask.ConfigureAwait(false);
-            _ = Task.Run(() => this.DoWork());
+            _ = Task.Run(() => this.DoWork(), CancellationToken.None);
         }
 
         private async Task DoWork()
         {
             await Task.CompletedTask.ConfigureAwait(false);
-            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            _ = Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(this.FormFactory());

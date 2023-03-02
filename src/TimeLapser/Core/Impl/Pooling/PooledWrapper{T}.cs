@@ -2,6 +2,7 @@
 {
     using System;
 
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.ObjectPool;
 
     /// <summary>
@@ -11,14 +12,17 @@
     public class PooledWrapper<T> : IDisposable
         where T : class
     {
+        private readonly ILogger logger;
+
         private bool disposed = false;
         private T value;
         private ObjectPool<T> holdingPool;
 
-        public PooledWrapper(T value, ObjectPool<T> holdingPool)
+        public PooledWrapper(T value, ObjectPool<T> holdingPool, ILogger logger)
         {
             this.Value = value;
             this.HoldingPool = holdingPool;
+            this.logger = logger;
         }
 
         ~PooledWrapper()
@@ -74,6 +78,7 @@
 
             if (disposing)
             {
+                this.logger.LogTrace("Returning value to pool");
                 this.HoldingPool.Return(this.Value);
             }
 

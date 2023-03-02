@@ -9,12 +9,14 @@ namespace kasthack.TimeLapser
     using System.Linq;
     using System.Threading.Tasks;
 
+    using kasthack.TimeLapser.Core.Impl.Pooling;
     using kasthack.TimeLapser.Core.Impl.Snappers.DX;
     using kasthack.TimeLapser.Core.Impl.Util;
     using kasthack.TimeLapser.Core.Interfaces;
     using kasthack.TimeLapser.Core.Models;
 
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.ObjectPool;
 
     using SharpDX.DXGI;
 
@@ -26,18 +28,21 @@ namespace kasthack.TimeLapser
         public const int RenderPoolSize = 6;
         private const int DestPixelSize = 3;
         private const int SourcePixelSize = sizeof(int);
-        private const PixelFormat DestPixelFormat = PixelFormat.Format24bppRgb;
         private const Format SourcePixelFormat = Format.B8G8R8A8_UNorm;
+
         private readonly ILogger<DXSnapper> logger;
-        private int currentRenderIndex = 0;
+
         private Factory1 factory;
-        private Bitmap[] renderBitmaps;
         private Rectangle? sourceRect;
+
+        private ObjectPool<Bitmap> renderPool;
         private DXSnapperInput[] inputs;
 
-        public DXSnapper(ILogger<DXSnapper> logger)
+        public DXSnapper(ILogger<DXSnapper> logger) => this.logger = logger;
+
+        ~DXSnapper()
         {
-            this.logger = logger;
+            this.DisposeNative(false);
         }
 
         public int MaxProcessingThreads => RenderPoolSize;
@@ -46,26 +51,40 @@ namespace kasthack.TimeLapser
         {
             this.logger.LogDebug("Setting source rectangle to {sourceRectangle}", sourceRectangle);
             _ = this.ThrowIfDisposed();
-            this.DisposeNative();
+            this.DisposeNative(true);
 
             this.sourceRect = sourceRectangle;
             this.factory = new Factory1();
             this.inputs = this.GetCapturedOutputs().Select(a => new DXSnapperInput(this.factory, a.Item1, a.Item2, sourceRectangle, this.logger)).ToArray();
-            this.renderBitmaps = Enumerable.Range(0, RenderPoolSize).Select(_ => new Bitmap(sourceRectangle.Width, sourceRectangle.Height, DestPixelFormat)).ToArray();
+            this.renderPool = ObjectPoolFactory.Create(
+                    () =>
+                    {
+                        try
+                        {
+                            return new Bitmap(this.sourceRect.Value.Width, this.sourceRect.Value.Height, DXSnapperInput.SupportedPixelFormat);
+                        }
+                        catch (Exception ex)
+                        {
+                            this.logger.LogError(ex, "Failed to create new source context, source rect: {sourceRectangle}", this.sourceRect);
+                            throw;
+                        }
+                    },
+                    RenderPoolSize);
             this.logger.LogTrace("Set source rectangle to {sourceRectangle}", sourceRectangle);
         }
 
         public async Task<IPooledFrame> Snap(int timeout = 0)
         {
+            this.logger.LogTrace("Capturing input");
             _ = this.ThrowIfDisposed();
             if (this.sourceRect == null)
             {
                 throw new InvalidOperationException("You have to specify source");
             }
 
-            var renderIndex = this.currentRenderIndex = (this.currentRenderIndex + 1) % RenderPoolSize;
-            var renderBitmap = this.renderBitmaps[renderIndex];
-            this.logger.LogTrace("Capturing input using render index {renderIndex}", renderIndex);
+            var renderBitmapDisposable = this.renderPool.GetDisposable(this.logger);
+            var renderBitmap = renderBitmapDisposable.Value;
+
             BitmapData bitmap = null;
             try
             {
@@ -75,12 +94,12 @@ namespace kasthack.TimeLapser
                  * Parallel snap renders every input at the same time using shared pointer
                  * Single threaded snap renders input sequentally and recreates bitmapdata for each render
                  */
-                this.logger.LogTrace("Launching capture tasks for render index {renderIndex}", renderIndex);
+                this.logger.LogTrace("Launching capture tasks");
                 bitmap = renderBitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, renderBitmap.PixelFormat);
                 await Task.WhenAll(
                     this.inputs.Select(input =>
                         Task.Run(() => input.Snap(bitmap, timeout)))).ConfigureAwait(false);
-                this.logger.LogTrace("Completed capture tasks for render index {renderIndex}", renderIndex);
+                this.logger.LogTrace("Completed capture tasks");
             }
             catch (Exception ex)
             {
@@ -98,18 +117,22 @@ namespace kasthack.TimeLapser
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Failed to unlock rendering bitmap {renderIndex}", renderIndex);
-                    Debugger.Break();
+                    this.logger.LogError(ex, "Failed to unlock rendering bitmap");
+                    if (Debugger.IsAttached)
+                    {
+                        Debugger.Break();
+                    }
                 }
             }
 
-            return renderBitmap;
+            return new PooledBitmapFrame(renderBitmapDisposable, this.logger);
         }
 
         public override void Dispose()
         {
-            this.DisposeNative();
+            this.DisposeNative(true);
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         private Tuple<int, int>[] GetCapturedOutputs()
@@ -130,34 +153,56 @@ namespace kasthack.TimeLapser
                 }
             }
 
+            this.logger.LogTrace("Got {count} captured outputs", ret.Count);
             return ret.ToArray();
         }
 
-        private void DisposeNative()
+        private void DisposeNative(bool disposing)
         {
-            this.factory?.Dispose();
+            this.logger.LogDebug("Disposing snapper resources, disposing = {disposing}", disposing);
+            if (disposing)
+            {
+                this.factory?.Dispose();
+            }
+
             this.factory = null;
 
-            if (this.renderBitmaps != null)
+            // https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool?view=aspnetcore-7.0#:~:text=When%20DefaultObjectPoolProvider%20is%20used%20and
+            // render pool is SOMETIMES IDisposable
+            if (disposing && this.renderPool is IDisposable disposablePool)
             {
-                for (var i = 0; i < this.renderBitmaps.Length; i++)
-                {
-                    this.renderBitmaps[i]?.Dispose();
-                    this.renderBitmaps[i] = null;
-                }
-
-                this.renderBitmaps = null;
+                this.logger.LogTrace("Render pool is disposable, disposing it");
+                disposablePool.Dispose();
             }
+
+            this.renderPool = null;
 
             if (this.inputs != null)
             {
                 for (var i = 0; i < this.inputs.Length; i++)
                 {
-                    this.inputs[i]?.Dispose();
+                    if (disposing)
+                    {
+                        this.inputs[i]?.Dispose();
+                    }
+
                     this.inputs[i] = null;
                 }
 
                 this.inputs = null;
+            }
+
+            this.logger.LogDebug("Disposed snapper resources, disposing = {disposing}", disposing);
+        }
+
+        private record PooledBitmapFrame(PooledWrapper<Bitmap> PooledBitmap, ILogger Logger) : IPooledFrame
+        {
+            public Bitmap Value => this.PooledBitmap.Value;
+
+            public void Dispose()
+            {
+                this.Logger.LogTrace("Releasing bitmap frame");
+                this.PooledBitmap?.Dispose();
             }
         }
     }
