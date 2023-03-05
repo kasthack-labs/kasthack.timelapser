@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ internal record ChannelRecorder(
     private const int MaxParallelCaptureTasks = 2;
     private CancellationTokenSource cts;
     private readonly ManualResetEventSlim stopWaiter = new();
+    private readonly ManualResetEventSlim investigationEvent = new(true); // pauses all pipelines
 
     ~ChannelRecorder()
     {
@@ -72,19 +74,22 @@ internal record ChannelRecorder(
         snapper.SetSource(settings.CaptureRectangle);
 
         var captureChannel = Channel.CreateBounded<OrderedFrame>(snapper.MaxProcessingThreads);
-        var reorderChannel = Channel.CreateBounded<OrderedFrame>(snapper.MaxProcessingThreads);
+        var reorderChannel = Channel.CreateBounded<OrderedFrame>(MaxParallelCaptureTasks);
         var disposeChannel = Channel.CreateBounded<OrderedFrame>(snapper.MaxProcessingThreads);
 
         this.Logger.LogDebug("Starting pipelines");
-
-        var captureTask = Task.Run(async () => await this.CaptureLoop(snapper, captureChannel.Writer, settings).ConfigureAwait(false));
-        var reorderTask = Task.Run(async () => await this.ReorderLoop(captureChannel.Reader, reorderChannel.Writer, MaxParallelCaptureTasks).ConfigureAwait(false));
-        var encodeTask = Task.Run(async () => await this.EncodeLoop(reorderChannel.Reader, disposeChannel.Writer, settings).ConfigureAwait(false));
-        var disposeTask = Task.Run(async () => await this.DisposeLoop(disposeChannel.Reader).ConfigureAwait(false));
-
         try
         {
-            await Task.WhenAll(captureTask, reorderTask, encodeTask, disposeTask).ConfigureAwait(false);
+            await Task.WhenAll(
+                new[]
+                {
+                  () => this.CaptureLoop(snapper, captureChannel.Writer, settings),
+                  () => this.ReorderLoop(captureChannel.Reader, reorderChannel.Writer, MaxParallelCaptureTasks),
+                  () => this.EncodeLoop(reorderChannel.Reader, disposeChannel.Writer, settings),
+                  () => this.DisposeLoop(disposeChannel.Reader),
+                }
+                .Select(task => Task.Run(async () => await task().ConfigureAwait(false))))
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -97,15 +102,15 @@ internal record ChannelRecorder(
         }
     }
 
-    private async Task DisposeLoop(ChannelReader<OrderedFrame> reader)
-    {
-        this.Logger.LogDebug("Dispose loop started");
-        try
+    private async Task DisposeLoop(ChannelReader<OrderedFrame> reader) => await this.RunPipelineFragment(
+        async () =>
         {
             while (await reader.WaitToReadAsync().ConfigureAwait(false))
             {
+                this.investigationEvent.Wait();
                 while (reader.TryRead(out var frame))
                 {
+                    this.investigationEvent.Wait();
                     try
                     {
                         this.Logger.LogTrace("Releasing frame {frameId}", frame.FrameId);
@@ -117,12 +122,8 @@ internal record ChannelRecorder(
                     }
                 }
             }
-        }
-        finally
-        {
-            this.Logger.LogError("Dispose loop stopped");
-        }
-    }
+        },
+        "dispose").ConfigureAwait(false);
 
     /// <summary>
     /// capture frames from snapper, write to channelWriter.
@@ -133,78 +134,81 @@ internal record ChannelRecorder(
     /// <returns>Awaitable task.</returns>
     private async Task CaptureLoop(ISnapper snapper, ChannelWriter<OrderedFrame> writer, RecordSettings settings)
     {
-        this.Logger.LogDebug("Capture loop started");
         var frameId = 0L;
         using var countdown = new CountdownEvent(1);
         using var captureSemaphore = new SemaphoreSlim(MaxParallelCaptureTasks);
-        try
-        {
-            while (this.Recording)
-            {
-                var delay = settings.Realtime ? 1000 / settings.Fps : settings.Interval;
-                var delayTask = Task.Delay(delay, this.cts.Token);
-                var currentFrameId = ++frameId;
 
-                this.Logger.LogTrace("Incrementing countdown and acquiring semaphore for capturing frame {frameId}", currentFrameId);
-                countdown.AddCount();
-                await captureSemaphore.WaitAsync().ConfigureAwait(false);
-                _ = Task.Run(async () =>
+        await this.RunPipelineFragment(
+            async () =>
+            {
+                while (this.Recording)
                 {
-                    try
+                    this.investigationEvent.Wait();
+                    var delay = settings.Realtime ? 1000 / settings.Fps : settings.Interval;
+                    var delayTask = Task.Delay(delay, this.cts.Token);
+                    var currentFrameId = ++frameId;
+
+                    this.Logger.LogTrace("Incrementing countdown and acquiring semaphore for capturing frame {frameId}, current count {activeTaskCountEvent}", currentFrameId, countdown.CurrentCount - 1);
+                    countdown.AddCount();
+                    await captureSemaphore.WaitAsync().ConfigureAwait(false);
+                    _ = Task.Run(async () =>
                     {
-                        this.Logger.LogTrace("Capturing frame {frameId}", currentFrameId);
-                        var bmp = await snapper.Snap(delay).ConfigureAwait(false);
-                        if (bmp is not null)
+                        try
                         {
-                            if (writer.TryWrite(new(currentFrameId, bmp)))
+                            this.Logger.LogTrace("Capturing frame {frameId}", currentFrameId);
+                            var bmp = await snapper.Snap(delay).ConfigureAwait(false);
+                            if (bmp is not null)
                             {
-                                this.Logger.LogTrace("Captured frame {frameId}", currentFrameId);
+                                if (writer.TryWrite(new(currentFrameId, bmp)))
+                                {
+                                    this.Logger.LogTrace("Captured frame {frameId}", currentFrameId);
+                                }
+                                else
+                                {
+                                    this.Logger.LogWarning("Congested capture writer! Dropping frame {frameId}", frameId);
+                                }
                             }
                             else
                             {
-                                this.Logger.LogWarning("Congested capture writer! Dropping frame {frameId}", frameId);
+                                this.Logger.LogWarning("Frame {frameId} is null, skipping", frameId);
                             }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            this.Logger.LogWarning("Frame {frameId} is null, skipping", frameId);
+                            this.Logger.LogError(ex, "Error capturing frame {frameId}, writing null", currentFrameId);
+                            await writer.WriteAsync(new(currentFrameId, null)).ConfigureAwait(false);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        this.Logger.LogError(ex, "Error capturing frame {frameId}, writing null", currentFrameId);
-                        await writer.WriteAsync(new(currentFrameId, null)).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        _ = captureSemaphore.Release();
-                        _ = countdown.Signal();
-                    }
-                }).ConfigureAwait(false);
-                this.Logger.LogTrace("Waiting for the next frame after {frameId}", currentFrameId);
+                        finally
+                        {
+                            _ = captureSemaphore.Release();
+                            _ = countdown.Signal();
+                            this.Logger.LogTrace("Released capture semaphore and event. Current tasks: {activeTaskCountSemaphore}(sem), {activeTaskCountEvent}(ev)", captureSemaphore.CurrentCount, countdown.CurrentCount - 1);
+                        }
+                    }).ConfigureAwait(false);
+                    this.Logger.LogTrace("Waiting for the next frame after {frameId}", currentFrameId);
 
-                try
-                {
-                    await delayTask.ConfigureAwait(false);
+                    try
+                    {
+                        await delayTask.ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                    }
                 }
-                catch
+            },
+            "capture",
+            async () =>
+            {
+                _ = countdown.Signal();
+                if (countdown.CurrentCount != 0)
                 {
+                    this.Logger.LogTrace("Waiting for capture countdown, current value: {staleCaptureTaskCount}", countdown.CurrentCount);
+                    countdown.Wait();
+                    this.Logger.LogTrace("Completed waiting for stale caputre tasks");
                 }
-            }
-        }
-        catch (Exception ex)
-        {
-            this.Logger.LogError(ex, "Error while running capture loop");
-        }
-        finally
-        {
-            this.Logger.LogTrace("Stopping capture loop");
-            _ = countdown.Signal();
-            countdown.Wait();
-            this.Logger.LogTrace("Closing capture channel writer");
-            writer.Complete();
-            this.Logger.LogError("Capture loop stopped");
-        }
+                this.Logger.LogTrace("Closing capture channel writer");
+            },
+            writer).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -216,70 +220,69 @@ internal record ChannelRecorder(
     /// <returns>Awaitable task.</returns>
     private async Task ReorderLoop(ChannelReader<OrderedFrame> reader, ChannelWriter<OrderedFrame> writer, int bufferSize)
     {
-        this.Logger.LogDebug("Starting reorder loop");
-        try
-        {
-            var chunk = new List<OrderedFrame>();
-            IPooledFrame lastFrame = null;
-            while (this.Recording && await reader.WaitToReadAsync().ConfigureAwait(false))
+        var chunk = new List<OrderedFrame>();
+        IPooledFrame lastFrame = null;
+
+        await this.RunPipelineFragment(
+            async () =>
             {
-                while (reader.TryRead(out var item))
+                while (this.Recording && await reader.WaitToReadAsync().ConfigureAwait(false))
                 {
-                    chunk.Add(item);
-                    if (chunk.Count == bufferSize)
+                    this.investigationEvent.Wait();
+                    while (reader.TryRead(out var item))
                     {
-                        ForwardChunk();
+                        this.investigationEvent.Wait();
+                        chunk.Add(item);
+                        if (chunk.Count == bufferSize)
+                        {
+                            ForwardChunk();
+                        }
                     }
+                }
+
+                ForwardChunk();
+            },
+            "reorder",
+            writer: writer)
+            .ConfigureAwait(false);
+        void ForwardChunk()
+        {
+            if (chunk.Count == 0)
+            {
+                return;
+            }
+
+            chunk.Sort((a, b) => a.FrameId.CompareTo(b.FrameId));
+            this.Logger.LogTrace(
+                "Forwarding chunk of {count} frames, first frame id {firstFrameId}, last frame id {lastFrameId}",
+                chunk.Count,
+                chunk[0].FrameId,
+                chunk[^1].FrameId);
+            foreach (var (frameId, frame) in chunk)
+            {
+                var outputFrame = frame;
+                if (outputFrame is null)
+                {
+                    outputFrame = lastFrame;
+                }
+                else
+                {
+                    lastFrame = outputFrame;
+                }
+
+                if (outputFrame is null)
+                {
+                    this.Logger.LogWarning("Frame {frameId} is null, skipping", frameId);
+                    continue;
+                }
+
+                if (!writer.TryWrite(new(frameId, outputFrame)))
+                {
+                    this.Logger.LogError("Congested reorder writer! Dropping frame {frameId}", frameId);
                 }
             }
 
-            ForwardChunk();
-
-            void ForwardChunk()
-            {
-                if (chunk.Count == 0)
-                {
-                    return;
-                }
-
-                chunk.Sort((a, b) => a.FrameId.CompareTo(b.FrameId));
-                this.Logger.LogTrace(
-                    "Forwarding chunk of {count} frames, first frame id {firstFrameId}, last frame id {lastFrameId}",
-                    chunk.Count,
-                    chunk[0].FrameId,
-                    chunk[^1].FrameId);
-                foreach (var (frameId, frame) in chunk)
-                {
-                    var outputFrame = frame;
-                    if (outputFrame is null)
-                    {
-                        outputFrame = lastFrame;
-                    }
-                    else
-                    {
-                        lastFrame = outputFrame;
-                    }
-
-                    if (outputFrame is null)
-                    {
-                        this.Logger.LogWarning("Frame {frameId} is null, skipping", frameId);
-                        continue;
-                    }
-
-                    if (!writer.TryWrite(new(frameId, outputFrame)))
-                    {
-                        this.Logger.LogError("Congested reorder writer! Dropping frame {frameId}", frameId);
-                    }
-                }
-
-                chunk.Clear();
-            }
-        }
-        finally
-        {
-            this.Logger.LogDebug("Closing reorder channel writer");
-            writer.Complete();
-            this.Logger.LogError("Reorder loop stopped");
+            chunk.Clear();
         }
     }
 
@@ -290,38 +293,39 @@ internal record ChannelRecorder(
     /// <param name="writer">Writer to send frames for disposal.</param>
     /// <param name="settings">Record settings.</param>
     /// <returns>Awaitable task.</returns>
-    private async Task EncodeLoop(ChannelReader<OrderedFrame> reader, ChannelWriter<OrderedFrame> writer, RecordSettings settings)
-    {
-        this.Logger.LogDebug("Starting encode loop");
-        try
+    private async Task EncodeLoop(ChannelReader<OrderedFrame> reader, ChannelWriter<OrderedFrame> writer, RecordSettings settings) => await this.RunPipelineFragment(
+        async () =>
         {
             var splitIntervalInFrames = settings.SplitInterval * settings.Fps;
             while (this.Recording)
             {
+                this.investigationEvent.Wait();
                 using (var outstream = this.OutputStreamProvider.GetOutputStream(settings))
                 {
                     while (this.Recording && await reader.WaitToReadAsync().ConfigureAwait(false))
                     {
-                        while (reader.TryRead(out var item))
+                        this.investigationEvent.Wait();
+                        while (reader.TryRead(out var currentFrame))
                         {
-                            var frame = item.Frame;
-                            this.Logger.LogTrace("Writing frame {frameId} to output stream", item.FrameId);
+                            this.investigationEvent.Wait();
+                            var frame = currentFrame.Frame;
+                            this.Logger.LogTrace("Writing frame {frameId} to output stream", currentFrame.FrameId);
                             try
                             {
                                 outstream.WriteVideoFrame(frame.Value);
                             }
                             catch (Exception ex)
                             {
-                                this.Logger.LogError(ex, "Error writing frame {frameId} to output stream", item.FrameId);
+                                this.Logger.LogError(ex, "Error writing frame {frameId} to output stream", currentFrame.FrameId);
                             }
                             finally
                             {
-                                await writer.WriteAsync(item).ConfigureAwait(false);
+                                await writer.WriteAsync(currentFrame).ConfigureAwait(false);
                             }
 
-                            if (item.FrameId % splitIntervalInFrames == 0)
+                            if (currentFrame.FrameId % splitIntervalInFrames == 0)
                             {
-                                this.Logger.LogInformation("Splitting output file {file} at frame {frameId}", item.FrameId);
+                                this.Logger.LogInformation("Splitting output file {file} at frame {frameId}", currentFrame.FrameId);
                                 goto outer;
                             }
                         }
@@ -332,12 +336,32 @@ internal record ChannelRecorder(
 #pragma warning restore SA1024
                 }
             }
+        },
+        "encode",
+        writer: writer).ConfigureAwait(false);
+
+    private async Task RunPipelineFragment(Func<Task> body, string name, Func<Task> final = default, ChannelWriter<OrderedFrame> writer = default)
+    {
+        this.Logger.LogDebug("Starting {pipelineFragment} loop", name);
+        try
+        {
+            await body().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            this.investigationEvent.Reset();
+            this.Logger.LogError(ex, "Error while running {pipelineFragment} loop", name);
         }
         finally
         {
-            this.Logger.LogDebug("Stopping encode loop");
-            writer.Complete();
-            this.Logger.LogError("Encode loop stopped");
+            this.Logger.LogDebug("Stopping {pipelineFragment} loop", name);
+            if (final is not null)
+            {
+                await final().ConfigureAwait(false);
+            }
+
+            writer?.Complete();
+            this.Logger.LogError("{pipelineFragment} loop stopped", name);
         }
     }
 

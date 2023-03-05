@@ -18,9 +18,12 @@
     /// </summary>
     internal partial class DXSnapper
     {
-        private class DXSnapperInput : DisposableBase, IDisposable
+        private class DXSnapperInput : DisposableBase
         {
-            public static readonly PixelFormat SupportedPixelFormat = PixelFormat.Format24bppRgb;
+            private const Format SourcePixelFormat = Format.B8G8R8A8_UNorm;
+
+            private const int DestPixelSize = 3;
+            private const int SourcePixelSize = sizeof(int);
 
             private readonly ILogger logger;
 
@@ -31,19 +34,20 @@
             private readonly int height;
             private readonly int width;
 
+            private Factory1 factory;
             private Adapter1 adapter;
             private Output1 output1;
             private Output output;
             private Texture2DDescription textureDescription;
-            private Texture2D screenTexture;
             private SharpDX.Direct3D11.Device device;
             private OutputDuplication duplicatedOutput;
 
-            public DXSnapperInput(Factory1 factory, int adapterIndex, int outputIndex, Rectangle captureRectangle, ILogger logger)
+            public DXSnapperInput(int adapterIndex, int outputIndex, Rectangle captureRectangle, ILogger logger)
             {
                 this.logger = logger;
                 this.logger.LogDebug("Creating DX input for {adapter} using capture rectangle {sourceRectangle}", adapterIndex, captureRectangle);
-                this.adapter = factory.GetAdapter1(adapterIndex);
+                this.factory = new Factory1();
+                this.adapter = this.factory.GetAdapter1(adapterIndex);
                 this.device = new SharpDX.Direct3D11.Device(this.adapter);
                 this.output = this.adapter.GetOutput(outputIndex);
                 var outputBounds = this.output.Description.DesktopBounds.ToGDIRect();
@@ -72,7 +76,8 @@
                     },
                     Usage = ResourceUsage.Staging,
                 };
-                this.screenTexture = new Texture2D(this.device, this.textureDescription);
+
+                // this.screenTexture = new Texture2D(this.device, this.textureDescription);
                 this.output1 = this.output.QueryInterface<Output1>();
                 this.duplicatedOutput = this.output1.DuplicateOutput(this.device);
 
@@ -91,88 +96,115 @@
             public override void Dispose()
             {
                 this.logger.LogDebug("Disposing DX input");
+                this.factory.Dispose();
                 this.adapter?.Dispose();
                 this.device?.Dispose();
                 this.output?.Dispose();
                 this.output1?.Dispose();
-                this.screenTexture?.Dispose();
                 this.duplicatedOutput?.Dispose();
 
+                this.factory = null;
                 this.adapter = null;
                 this.device = null;
                 this.output = null;
                 this.output1 = null;
-                this.screenTexture = null;
                 this.duplicatedOutput = null;
-                GC.SuppressFinalize(this);
 
                 base.Dispose();
+                GC.SuppressFinalize(this);
             }
 
             internal bool Snap(BitmapData bitmap, int timeout)
             {
+                _ = this.ThrowIfDisposed();
                 if (bitmap.PixelFormat != SupportedPixelFormat)
                 {
-#pragma warning disable CA2254 // public static readonly enum is effectively constant BUT I don't want it to be a const to avoid baking it in elsewhere
-                    this.logger.LogError($"Rendering is only supported for {SupportedPixelFormat} bitmaps, got {{outputPixelFormat}} instead", bitmap.PixelFormat);
-#pragma warning restore CA2254
-
+                    this.logger.LogError("Rendering is only supported for {supportedPixelFormat} bitmaps, got {outputPixelFormat} instead", SupportedPixelFormat, bitmap.PixelFormat);
                     throw new ArgumentOutOfRangeException(nameof(bitmap), $"Invalid pixel format for rendering: {SupportedPixelFormat} supported, got {bitmap.PixelFormat}");
                 }
 
                 this.logger.LogTrace("Snapping data into a bitmap using timeout {timeout} for input {input}", timeout, this.AdapterDescription);
-                _ = this.ThrowIfDisposed();
-                SharpDX.DXGI.Resource screenResource = null;
-                var acquiredFrame = false;
                 try
                 {
-                    try
+                    using var cpuAccessibleTexture = this.GetDesktopTexture(timeout);
+                    if (cpuAccessibleTexture is null)
                     {
-                        var result = this.duplicatedOutput.TryAcquireNextFrame(timeout, out var dfi, out screenResource);
-                        if (!result.Success)
-                        {
-                            this.logger.LogWarning("Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
-                            return false;
-                        }
-
-                        this.logger.LogTrace("Acquired duplicated output frame for input {input}", this.AdapterDescription);
-                        acquiredFrame = true;
-                    }
-                    catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
-                    {
-                        this.logger.LogWarning(e, "Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
                         return false;
                     }
 
-                    this.logger.LogTrace("Copying duplicated output into texture using input {input}", this.AdapterDescription);
-                    using (var queryInterface = screenResource.QueryInterface<SharpDX.Direct3D11.Resource>())
+                    try
                     {
-                        this.device.ImmediateContext.CopyResource(queryInterface, this.screenTexture);
+                        this.logger.LogTrace("Mapping databox using input {input}", this.AdapterDescription);
+                        var databox = this.device.ImmediateContext.MapSubresource(cpuAccessibleTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
+                        this.logger.LogTrace("Mapped databox using input {input}, now rendering", this.AdapterDescription);
+                        this.Render(databox, bitmap);
+                        this.logger.LogTrace("Rendered using {input}", this.AdapterDescription);
+                        return true;
                     }
-
-                    this.logger.LogTrace("Copied duplicated output into texture using input {input}", this.AdapterDescription);
-
-                    var databox = this.device.ImmediateContext.MapSubresource(this.screenTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
-                    this.Render(databox, bitmap);
-                    return true;
+                    finally
+                    {
+                        this.logger.LogTrace("Unmapping screen texture using {input}", this.AdapterDescription);
+                        this.device.ImmediateContext.UnmapSubresource(cpuAccessibleTexture, 0);
+                        this.logger.LogTrace("Unmapped screen texture using {input}", this.AdapterDescription);
+                    }
                 }
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, "Failed to capture frame for input {input}", this.AdapterDescription);
-                    throw;
-                }
-                finally
-                {
-                    this.device.ImmediateContext.UnmapSubresource(this.screenTexture, 0);
-                    screenResource?.Dispose();
-                    if (acquiredFrame)
-                    {
-                        this.duplicatedOutput?.ReleaseFrame();
-                    }
+                    return false;
                 }
             }
 
             private static string FormatRectangle(Rectangle desktopBounds) => $"(x:{desktopBounds.X} y:{desktopBounds.Y} w:{desktopBounds.Width} h:{desktopBounds.Height})";
+
+            private Texture2D GetDesktopTexture(int timeout)
+            {
+                this.logger.LogTrace("Acquiring duplicated output frame for input {input}", this.AdapterDescription);
+                SharpDX.DXGI.Resource desktopScreenResource;
+                try
+                {
+                    var duplicatedOutputCaptureResult = this.duplicatedOutput.TryAcquireNextFrame(timeout, out var desktopFrameInformation, out desktopScreenResource);
+                    if (!duplicatedOutputCaptureResult.Success)
+                    {
+                        this.logger.LogWarning("Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
+                        return null;
+                    }
+                }
+                catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
+                {
+                    this.logger.LogWarning(e, "Failed to acquire duplicated output frame for input {input}", this.AdapterDescription);
+                    return null;
+                }
+
+                this.logger.LogTrace("Acquired duplicated output frame for input {input}", this.AdapterDescription);
+
+                try
+                {
+                    using (desktopScreenResource)
+                    {
+                        var cpuAccessibleTexture = new Texture2D(this.device, this.textureDescription);
+                        using (var queryInterface = desktopScreenResource.QueryInterface<SharpDX.Direct3D11.Resource>())
+                        {
+                            this.logger.LogTrace("Copying duplicated output into texture using input {input}", this.AdapterDescription);
+                            this.device.ImmediateContext.CopyResource(queryInterface, cpuAccessibleTexture);
+                            this.logger.LogTrace("Copied duplicated output into texture using input {input}", this.AdapterDescription);
+                        }
+
+                        return cpuAccessibleTexture;
+                    }
+                }
+                finally
+                {
+                    try
+                    {
+                        this.duplicatedOutput?.ReleaseFrame();
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.LogError(ex, "Failed to release frame for input {input}", this.AdapterDescription);
+                    }
+                }
+            }
 
             private unsafe void Render(DataBox databox, BitmapData bitmap)
             {

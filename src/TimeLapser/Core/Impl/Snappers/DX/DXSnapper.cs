@@ -26,13 +26,10 @@ namespace kasthack.TimeLapser
     internal partial class DXSnapper : DisposableBase, ISnapper
     {
         public const int RenderPoolSize = 6;
-        private const int DestPixelSize = 3;
-        private const int SourcePixelSize = sizeof(int);
-        private const Format SourcePixelFormat = Format.B8G8R8A8_UNorm;
+        private const PixelFormat SupportedPixelFormat = PixelFormat.Format24bppRgb;
 
         private readonly ILogger<DXSnapper> logger;
 
-        private Factory1 factory;
         private Rectangle? sourceRect;
 
         private ObjectPool<Bitmap> renderPool;
@@ -54,18 +51,18 @@ namespace kasthack.TimeLapser
             this.DisposeNative(true);
 
             this.sourceRect = sourceRectangle;
-            this.factory = new Factory1();
-            this.inputs = this.GetCapturedOutputs().Select(a => new DXSnapperInput(this.factory, a.Item1, a.Item2, sourceRectangle, this.logger)).ToArray();
+            this.inputs = this.GetCapturedOutputs().Select(a => new DXSnapperInput(a.AdapterIndex, a.OutputIndex, sourceRectangle, this.logger)).ToArray();
             this.renderPool = ObjectPoolFactory.Create(
                     () =>
                     {
+                        var rect = this.sourceRect.Value;
                         try
                         {
-                            return new Bitmap(this.sourceRect.Value.Width, this.sourceRect.Value.Height, DXSnapperInput.SupportedPixelFormat);
+                            return new Bitmap(rect.Width, rect.Height, SupportedPixelFormat);
                         }
                         catch (Exception ex)
                         {
-                            this.logger.LogError(ex, "Failed to create new source context, source rect: {sourceRectangle}", this.sourceRect);
+                            this.logger.LogError(ex, "Failed to create new source context, source rect: {sourceRectangle}", rect);
                             throw;
                         }
                     },
@@ -135,20 +132,21 @@ namespace kasthack.TimeLapser
             GC.SuppressFinalize(this);
         }
 
-        private Tuple<int, int>[] GetCapturedOutputs()
+        private (int AdapterIndex, int OutputIndex)[] GetCapturedOutputs()
         {
             this.logger.LogTrace("Getting captured outputs");
 
-            var ret = new List<Tuple<int, int>>(6); // most cases
-            for (var adapterIndex = this.factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
+            var ret = new List<(int AdapterIndex, int OutputIndex)>(6); // most cases
+            using var factory = new Factory1();
+            for (var adapterIndex = factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
             {
-                using var adapter = this.factory.GetAdapter1(adapterIndex);
+                using var adapter = factory.GetAdapter1(adapterIndex);
                 for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
                 {
                     using var output = adapter.GetOutput(outputIndex);
                     if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(this.sourceRect.Value))
                     {
-                        ret.Add(new Tuple<int, int>(adapterIndex, outputIndex));
+                        ret.Add((adapterIndex, outputIndex));
                     }
                 }
             }
@@ -160,12 +158,6 @@ namespace kasthack.TimeLapser
         private void DisposeNative(bool disposing)
         {
             this.logger.LogDebug("Disposing snapper resources, disposing = {disposing}", disposing);
-            if (disposing)
-            {
-                this.factory?.Dispose();
-            }
-
-            this.factory = null;
 
             // https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool?view=aspnetcore-7.0#:~:text=When%20DefaultObjectPoolProvider%20is%20used%20and
             // render pool is SOMETIMES IDisposable
