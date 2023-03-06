@@ -1,18 +1,17 @@
 ﻿namespace kasthack.TimeLapser.Core.Impl.Snappers.DX
 {
-    using System.Drawing;
-
-    using SharpDX.Mathematics.Interop;
+    using SdgRectangle = System.Drawing.Rectangle;
+    using DxRectangle = Vortice.RawRect; //SharpDX.Mathematics.Interop.RawRectangle;
 
     /// <summary>
     /// Extension methods for SharpDX.
     /// </summary>
     internal static class DXExtensions
     {
-        public static int Height(this RawRectangle rect) => rect.Bottom - rect.Top;
+        public static int Height(this DxRectangle rect) => rect.Bottom - rect.Top;
 
-        public static int Width(this RawRectangle rect) => rect.Right - rect.Left;
+        public static int Width(this DxRectangle rect) => rect.Right - rect.Left;
 
-        public static Rectangle ToGDIRect(this RawRectangle rect) => new(rect.Left, rect.Top, rect.Width(), rect.Height());
+        public static SdgRectangle ToGDIRect(this DxRectangle rect) => new(rect.Left, rect.Top, rect.Width(), rect.Height());
     }
 }

@@ -18,7 +18,6 @@ namespace kasthack.TimeLapser
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.ObjectPool;
 
-    using SharpDX.DXGI;
 
     /// <summary>
     /// Snapper, utilizing DirectX.
@@ -30,7 +29,7 @@ namespace kasthack.TimeLapser
 
         private readonly ILogger<DXSnapper> logger;
 
-        private Rectangle? sourceRect;
+        private System.Drawing.Rectangle? sourceRect;
 
         private ObjectPool<Bitmap> renderPool;
         private DXSnapperInput[] inputs;
@@ -85,7 +84,7 @@ namespace kasthack.TimeLapser
             BitmapData bitmap = null;
             try
             {
-                var boundsRect = new Rectangle(0, 0, renderBitmap.Width, renderBitmap.Height);
+                var boundsRect = new System.Drawing.Rectangle(0, 0, renderBitmap.Width, renderBitmap.Height);
 
                 /*
                  * Parallel snap renders every input at the same time using shared pointer
@@ -132,28 +131,6 @@ namespace kasthack.TimeLapser
             GC.SuppressFinalize(this);
         }
 
-        private (int AdapterIndex, int OutputIndex)[] GetCapturedOutputs()
-        {
-            this.logger.LogTrace("Getting captured outputs");
-
-            var ret = new List<(int AdapterIndex, int OutputIndex)>(6); // most cases
-            using var factory = new Factory1();
-            for (var adapterIndex = factory.GetAdapterCount1() - 1; adapterIndex >= 0; adapterIndex--)
-            {
-                using var adapter = factory.GetAdapter1(adapterIndex);
-                for (var outputIndex = adapter.GetOutputCount() - 1; outputIndex >= 0; outputIndex--)
-                {
-                    using var output = adapter.GetOutput(outputIndex);
-                    if (output.Description.DesktopBounds.ToGDIRect().IntersectsWith(this.sourceRect.Value))
-                    {
-                        ret.Add((adapterIndex, outputIndex));
-                    }
-                }
-            }
-
-            this.logger.LogTrace("Got {count} captured outputs", ret.Count);
-            return ret.ToArray();
-        }
 
         private void DisposeNative(bool disposing)
         {

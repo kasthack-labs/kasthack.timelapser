@@ -9,9 +9,12 @@
 
     using Microsoft.Extensions.Logging;
 
-    using SharpDX;
-    using SharpDX.Direct3D11;
-    using SharpDX.DXGI;
+    using Vortice.DXGI;
+
+    using DxFactory = Vortice.DXGI.IDXGIFactory7;
+    using DxAdapter = Vortice.DXGI.IDXGIAdapter1;
+    using DxOutput = Vortice.DXGI.IDXGIOutput;
+    using DxTexture2Description = Vortice.DXGI.;
 
     /// <summary>
     /// Screen-scoped directX snapper.
@@ -34,22 +37,25 @@
             private readonly int height;
             private readonly int width;
 
-            private Factory1 factory;
-            private Adapter1 adapter;
-            private Output1 output1;
-            private Output output;
-            private Texture2DDescription textureDescription;
+            private DxFactory factory;
+            private DxAdapter adapter;
+            private DxOutput output1;
+            private DxOutput output;
+            private Vortice.DCommon. textureDescription;
             private SharpDX.Direct3D11.Device device;
-            private OutputDuplication duplicatedOutput;
+            private IDXGIOutputDuplication duplicatedOutput;
 
             public DXSnapperInput(int adapterIndex, int outputIndex, Rectangle captureRectangle, ILogger logger)
             {
                 this.logger = logger;
                 this.logger.LogDebug("Creating DX input for {adapter} using capture rectangle {sourceRectangle}", adapterIndex, captureRectangle);
-                this.factory = new Factory1();
-                this.adapter = this.factory.GetAdapter1(adapterIndex);
-                this.device = new SharpDX.Direct3D11.Device(this.adapter);
-                this.output = this.adapter.GetOutput(outputIndex);
+                this.factory = DXGI.CreateDXGIFactory2<DxFactory>(false);
+                this.factory.EnumAdapters1(adapterIndex, out this.adapter);
+                this.adapter.(outputIndex, out this.output);
+                //get device using vortice
+                this.factory.
+
+
                 var outputBounds = this.output.Description.DesktopBounds.ToGDIRect();
 
                 var intersection = Rectangle.Intersect(outputBounds, captureRectangle);
