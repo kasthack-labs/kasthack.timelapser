@@ -42,4 +42,7 @@
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Core\Impl\Snappers\FFMpeg\" />
+  </ItemGroup>
 </Project>

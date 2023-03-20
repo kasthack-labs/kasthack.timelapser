@@ -50,6 +50,9 @@
                 this.adapter = this.factory.GetAdapter1(adapterIndex);
                 this.device = new SharpDX.Direct3D11.Device(this.adapter);
                 this.output = this.adapter.GetOutput(outputIndex);
+                this.output1 = this.output.QueryInterface<Output1>();
+                this.duplicatedOutput = this.output1.DuplicateOutput(this.device);
+
                 var outputBounds = this.output.Description.DesktopBounds.ToGDIRect();
 
                 var intersection = Rectangle.Intersect(outputBounds, captureRectangle);
@@ -78,8 +81,6 @@
                 };
 
                 // this.screenTexture = new Texture2D(this.device, this.textureDescription);
-                this.output1 = this.output.QueryInterface<Output1>();
-                this.duplicatedOutput = this.output1.DuplicateOutput(this.device);
 
                 this.destXOffset = intersection.Left - captureRectangle.Left;
                 this.destYOffset = intersection.Top - captureRectangle.Top;
